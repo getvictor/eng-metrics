@@ -132,25 +132,40 @@ jobs:
         run: npm ci
       
       - name: Create service account key file
-        run: echo "${{ secrets.GCP_SA_KEY }}" > service-account-key.json
+        run: echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > service-account-key.json
       
       - name: Collect and upload metrics
         uses: ./
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           config-path: './config.json'
-          gcp-service-account-key: ${{ secrets.GCP_SA_KEY }}
           bigquery-project: ${{ secrets.BIGQUERY_PROJECT_ID }}
           bigquery-dataset: 'github_metrics'
           bigquery-table: 'pr_pickup_time'
           target-branch: 'main'
           lookback-days: '30'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BIGQUERY_PROJECT_ID: ${{ secrets.BIGQUERY_PROJECT_ID }}
+          SERVICE_ACCOUNT_KEY_PATH: './service-account-key.json'
 ```
+
+#### How the GitHub Action Works
+
+1. **Service Account Key Handling**:
+   - The workflow creates a file named `service-account-key.json` from the `GCP_SERVICE_ACCOUNT_KEY` secret
+   - It then sets the `SERVICE_ACCOUNT_KEY_PATH` environment variable to point to this file
+   - The application uses this environment variable to locate the service account key file
+
+2. **Configuration**:
+   - The workflow passes configuration values as both input parameters and environment variables
+   - Input parameters are used by the GitHub Action wrapper
+   - Environment variables are used directly by the application
 
 Make sure to set the following secrets in your repository:
 
 - `GITHUB_TOKEN`: GitHub token with repo scope (automatically provided by GitHub Actions)
-- `GCP_SA_KEY`: Base64-encoded service account key JSON
+- `GCP_SERVICE_ACCOUNT_KEY`: Base64-encoded service account key JSON
 - `BIGQUERY_PROJECT_ID`: Google Cloud project ID
 
 ## BigQuery Schema

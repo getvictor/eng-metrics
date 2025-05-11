@@ -13,10 +13,6 @@ inputs:
     required: false
     default: 'config.json'
   
-  gcp-service-account-key:
-    description: 'Base64-encoded service account key JSON'
-    required: true
-  
   bigquery-project:
     description: 'Google Cloud project ID'
     required: true
