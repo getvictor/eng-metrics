@@ -24,7 +24,7 @@ export class MetricsCollector {
   /**
    * Initializes the metrics collector
    */
-  initialize() {
+  async initialize() {
     try {
       logger.info('Initializing metrics collector');
       
@@ -50,7 +50,7 @@ export class MetricsCollector {
    * @param {string} repository - Repository in the format owner/repo
    * @returns {Array} Array of PR pickup time metrics
    */
-  collectRepositoryMetrics(repository) {
+  async collectRepositoryMetrics(repository) {
     const [owner, repo] = repository.split('/');
     if (!owner || !repo) {
       let err = new Error(`Invalid repository format: ${repository}`);
@@ -65,7 +65,7 @@ export class MetricsCollector {
       since.setDate(since.getDate() - this.config.lookbackDays);
       
       // Fetch PRs updated since the lookback date
-      const pullRequests = this.githubClient.fetchPullRequests(
+      const pullRequests = await this.githubClient.fetchPullRequests(
         owner,
         repo,
         'all',
@@ -81,14 +81,14 @@ export class MetricsCollector {
       for (const pr of pullRequests) {
         try {
           // Fetch PR timeline events
-          const timelineEvents = this.githubClient.fetchPRTimelineEvents(
+          const timelineEvents = await this.githubClient.fetchPRTimelineEvents(
             owner,
             repo,
             pr.number
           );
           
           // Fetch PR review events
-          const reviewEvents = this.githubClient.fetchPRReviewEvents(
+          const reviewEvents = await this.githubClient.fetchPRReviewEvents(
             owner,
             repo,
             pr.number
@@ -121,7 +121,7 @@ export class MetricsCollector {
    * Collects metrics for all repositories
    * @returns {Array} Array of PR pickup time metrics
    */
-  collectMetrics() {
+  async collectMetrics() {
     try {
       logger.info('Collecting metrics for all repositories');
       
@@ -129,7 +129,7 @@ export class MetricsCollector {
       
       // Collect metrics for each repository
       for (const repository of this.config.repositories) {
-        const metrics = this.collectRepositoryMetrics(repository);
+        const metrics = await this.collectRepositoryMetrics(repository);
         allMetrics.push(...metrics);
       }
       
@@ -227,22 +227,22 @@ export class MetricsCollector {
   /**
    * Runs the metrics collection and upload process
    */
-  run() {
+  async run() {
     try {
       logger.info('Starting PR pickup time metrics collection');
       
       // Initialize the metrics collector
-      this.initialize();
+      await this.initialize();
       
       // Collect metrics
-      const metrics = this.collectMetrics();
+      const metrics = await this.collectMetrics();
       
       if (this.config.printOnly) {
         // Print metrics to console
         this.printMetrics(metrics);
       } else {
         // Upload metrics to BigQuery
-        this.uploadMetrics(metrics);
+        await this.uploadMetrics(metrics);
       }
       
       logger.info('PR pickup time metrics collection completed successfully');
