@@ -13,11 +13,15 @@ import logger from './logger.js';
  */
 async function main() {
   try {
-    // Get the configuration path from command line arguments
-    const configPath = process.argv[2] || 'config.json';
+    // Parse command line arguments
+    const args = process.argv.slice(2);
     
     // Check for print-only flag in command line arguments
-    const printOnlyFlag = process.argv.includes('--print-only');
+    const printOnlyFlag = args.includes('--print-only');
+    
+    // Get the configuration path from command line arguments
+    // Filter out the --print-only flag if present
+    const configPath = args.filter(arg => arg !== '--print-only')[0] || 'config.json';
     
     // Load configuration
     const config = loadConfig(configPath);

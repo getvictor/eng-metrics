@@ -60,21 +60,24 @@ const loadConfigFromFile = (configPath) => {
  * @returns {Object} Configuration object
  */
 const loadConfigFromEnv = () => {
+  // Create a config object with only defined values
+  const config = {};
+  
   // Parse repositories from environment variable if provided
-  const repositories = process.env.REPOSITORIES
-    ? process.env.REPOSITORIES.split(',').map(repo => repo.trim())
-    : undefined;
-
-  return {
-    repositories,
-    githubToken: process.env.GITHUB_TOKEN,
-    bigQueryProjectId: process.env.BIGQUERY_PROJECT_ID,
-    bigQueryDatasetId: process.env.BIGQUERY_DATASET_ID,
-    bigQueryTableId: process.env.BIGQUERY_TABLE_ID,
-    serviceAccountKeyPath: process.env.SERVICE_ACCOUNT_KEY_PATH,
-    targetBranch: process.env.TARGET_BRANCH,
-    printOnly: process.env.PRINT_ONLY === 'true'
-  };
+  if (process.env.REPOSITORIES) {
+    config.repositories = process.env.REPOSITORIES.split(',').map(repo => repo.trim());
+  }
+  
+  // Add other environment variables if they are defined
+  if (process.env.GITHUB_TOKEN) config.githubToken = process.env.GITHUB_TOKEN;
+  if (process.env.BIGQUERY_PROJECT_ID) config.bigQueryProjectId = process.env.BIGQUERY_PROJECT_ID;
+  if (process.env.BIGQUERY_DATASET_ID) config.bigQueryDatasetId = process.env.BIGQUERY_DATASET_ID;
+  if (process.env.BIGQUERY_TABLE_ID) config.bigQueryTableId = process.env.BIGQUERY_TABLE_ID;
+  if (process.env.SERVICE_ACCOUNT_KEY_PATH) config.serviceAccountKeyPath = process.env.SERVICE_ACCOUNT_KEY_PATH;
+  if (process.env.TARGET_BRANCH) config.targetBranch = process.env.TARGET_BRANCH;
+  if (process.env.PRINT_ONLY) config.printOnly = process.env.PRINT_ONLY === 'true';
+  
+  return config;
 };
 
 /**
@@ -138,7 +141,7 @@ export const loadConfig = (configPath = 'config.json') => {
     ...fileConfig,
     ...envConfig
   };
-  
+
   // Filter out undefined values
   Object.keys(config).forEach(key => {
     if (config[key] === undefined) {
