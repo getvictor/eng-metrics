@@ -1,0 +1,55 @@
+name: 'PR Pickup Time Metrics Collector'
+description: 'Collects PR pickup time metrics and uploads them to BigQuery'
+author: 'Your Name'
+
+inputs:
+  github-token:
+    description: 'GitHub token for API access'
+    required: true
+    default: ${{ github.token }}
+  
+  config-path:
+    description: 'Path to the configuration file'
+    required: false
+    default: 'config.json'
+  
+  gcp-service-account-key:
+    description: 'Base64-encoded service account key JSON'
+    required: true
+  
+  bigquery-project:
+    description: 'Google Cloud project ID'
+    required: true
+  
+  bigquery-dataset:
+    description: 'BigQuery dataset ID'
+    required: false
+    default: 'github_metrics'
+  
+  bigquery-table:
+    description: 'BigQuery table ID'
+    required: false
+    default: 'pr_pickup_time'
+  
+  target-branch:
+    description: 'Target branch to track PRs for'
+    required: false
+    default: 'main'
+  
+  lookback-days:
+    description: 'Number of days to look back for PRs'
+    required: false
+    default: '30'
+  
+  print-only:
+    description: 'Print metrics to console instead of uploading to BigQuery'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'node16'
+  main: 'src/index.js'
+
+branding:
+  icon: 'clock'
+  color: 'blue'
