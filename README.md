@@ -153,9 +153,12 @@ jobs:
 #### How the GitHub Action Works
 
 1. **Service Account Key Handling**:
-   - The workflow creates a file named `service-account-key.json` from the `GCP_SERVICE_ACCOUNT_KEY` secret
+   - The workflow writes the `GCP_SERVICE_ACCOUNT_KEY` secret directly to a file
+   - It verifies that the file contains valid JSON using `jq`
    - It then sets the `SERVICE_ACCOUNT_KEY_PATH` environment variable to point to this file
    - The application uses this environment variable to locate the service account key file
+
+   **Important**: The service account key should be stored as a JSON string in the GitHub secret. Copy the entire contents of your service account key JSON file to the secret value.
 
 2. **Configuration**:
    - The workflow passes configuration values as both input parameters and environment variables
@@ -165,7 +168,7 @@ jobs:
 Make sure to set the following secrets in your repository:
 
 - `GITHUB_TOKEN`: GitHub token with repo scope (automatically provided by GitHub Actions)
-- `GCP_SERVICE_ACCOUNT_KEY`: Base64-encoded service account key JSON
+- `GCP_SERVICE_ACCOUNT_KEY`: JSON service account key as a string
 - `BIGQUERY_PROJECT_ID`: Google Cloud project ID
 
 ## BigQuery Schema
