@@ -1,7 +1,6 @@
 {
   "repositories": [
-    "octocat/Hello-World",
-    "example-org/example-repo"
+    "fleetdm/fleet"
   ],
   "targetBranch": "main",
   "bigQueryDatasetId": "github_metrics",

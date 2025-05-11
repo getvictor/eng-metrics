@@ -164,10 +164,15 @@ The tool creates a BigQuery table with the following schema:
 | pr_url | STRING | HTTP link to the PR |
 | pickup_time_seconds | INTEGER | Time in seconds from "Ready for Review" to first review |
 | repository | STRING | Repository name (owner/repo) |
-| pr_number | INTEGER | PR number |
+| pr_number | INTEGER | PR number (used as primary key) |
 | target_branch | STRING | Branch the PR is targeting (always "main") |
 | ready_time | TIMESTAMP | Timestamp when PR was marked ready for review |
 | first_review_time | TIMESTAMP | Timestamp of first review activity |
+
+The table uses `pr_number` as the primary key, which means:
+- Each PR is only stored once in the database
+- If a PR already exists in the database, it will not be updated or overwritten
+- This ensures that the first calculation of pickup time for a PR is preserved
 
 ## Print-Only Mode
 

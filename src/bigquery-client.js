@@ -78,6 +78,10 @@ export class BigQueryClient {
           timePartitioning: {
             type: 'DAY',
             field: 'review_date'
+          },
+          // Set pr_number as the primary key
+          clustering: {
+            fields: ['pr_number']
           }
         };
         
@@ -130,6 +134,59 @@ export class BigQueryClient {
   }
 
   /**
+   * Checks if metrics already exist in BigQuery for the given PR numbers
+   * @param {string} datasetId - BigQuery dataset ID
+   * @param {string} tableId - BigQuery table ID
+   * @param {Array} prNumbers - Array of PR numbers to check
+   * @returns {Object} Object with PR numbers as keys and boolean values indicating if they exist
+   */
+  async checkExistingMetrics(datasetId, tableId, prNumbers) {
+    try {
+      // Get a reference to the table
+      const table = this.bigquery.dataset(datasetId).table(tableId);
+      
+      // Check if the table exists
+      const [tableExists] = await table.exists();
+      if (!tableExists) {
+        // If the table doesn't exist, no metrics exist
+        return prNumbers.reduce((acc, prNumber) => {
+          acc[prNumber] = false;
+          return acc;
+        }, {});
+      }
+      
+      // Create a query to check for existing PR numbers
+      const query = `
+        SELECT pr_number
+        FROM \`${datasetId}.${tableId}\`
+        WHERE pr_number IN (${prNumbers.join(',')})
+      `;
+      
+      // Run the query
+      const [rows] = await this.bigquery.query({ query });
+      
+      // Create a map of existing PR numbers
+      const existingPRs = rows.reduce((acc, row) => {
+        acc[row.pr_number] = true;
+        return acc;
+      }, {});
+      
+      // Return a map of all PR numbers with their existence status
+      return prNumbers.reduce((acc, prNumber) => {
+        acc[prNumber] = !!existingPRs[prNumber];
+        return acc;
+      }, {});
+    } catch (err) {
+      logger.error(`Error checking existing metrics in BigQuery ${datasetId}.${tableId}`, err);
+      // If there's an error, assume no metrics exist
+      return prNumbers.reduce((acc, prNumber) => {
+        acc[prNumber] = false;
+        return acc;
+      }, {});
+    }
+  }
+
+  /**
    * Uploads metrics to BigQuery
    * @param {string} datasetId - BigQuery dataset ID
    * @param {string} tableId - BigQuery table ID
@@ -147,8 +204,24 @@ export class BigQueryClient {
       // Ensure the table exists with the correct schema
       await this.createTableIfNotExists(datasetId, tableId, this.getTableSchema());
       
+      // Get all PR numbers from the metrics
+      const prNumbers = metrics.map(metric => metric.prNumber);
+      
+      // Check which PR numbers already exist in BigQuery
+      const existingMetrics = await this.checkExistingMetrics(datasetId, tableId, prNumbers);
+      
+      // Filter out metrics that already exist
+      const newMetrics = metrics.filter(metric => !existingMetrics[metric.prNumber]);
+      
+      if (newMetrics.length === 0) {
+        logger.info('All metrics already exist in BigQuery, nothing to upload');
+        return;
+      }
+      
+      logger.info(`Uploading ${newMetrics.length} new metrics to BigQuery (${metrics.length - newMetrics.length} already exist)`);
+      
       // Transform metrics to BigQuery row format
-      const rows = metrics.map(metric => this.transformMetricsToRow(metric));
+      const rows = newMetrics.map(metric => this.transformMetricsToRow(metric));
       
       // Get a reference to the table
       const table = this.bigquery.dataset(datasetId).table(tableId);
@@ -156,10 +229,11 @@ export class BigQueryClient {
       // Upload the rows to BigQuery
       const [apiResponse] = await table.insert(rows);
       
-      logger.info(`Successfully uploaded ${metrics.length} metrics to BigQuery`, {
+      logger.info(`Successfully uploaded ${newMetrics.length} metrics to BigQuery`, {
         datasetId,
         tableId,
-        insertedRows: metrics.length
+        insertedRows: newMetrics.length,
+        skippedRows: metrics.length - newMetrics.length
       });
       
       return apiResponse;
