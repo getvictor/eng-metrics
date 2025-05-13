@@ -262,8 +262,8 @@ export class GitHubClient {
       
       const readyTime = relevantReadyEvent.time;
       
-      // Calculate pickup time in seconds
-      const pickupTimeSeconds = Math.floor((firstReviewTime - readyTime) / 1000);
+      // Calculate pickup time excluding weekends
+      const pickupTimeSeconds = this.calculatePickupTimeExcludingWeekends(readyTime, firstReviewTime);
       
       // If pickup time is negative, something went wrong
       if (pickupTimeSeconds < 0) {
@@ -306,6 +306,87 @@ export class GitHubClient {
       return null;
     }
   }
+
+  /**
+   * Calculates pickup time excluding weekends
+   * @param {Date} readyTimeOrig - Time when PR was marked as ready for review
+   * @param {Date} reviewTimeOrig - Time when the first review occurred
+   * @returns {number} Pickup time in seconds, excluding weekends
+   */
+  calculatePickupTimeExcludingWeekends(readyTimeOrig, reviewTimeOrig) {
+    let readyTime = new Date(readyTimeOrig);
+    let reviewTime = new Date(reviewTimeOrig);
+
+    // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+    const readyDay = readyTime.getUTCDay();
+    const reviewDay = reviewTime.getUTCDay();
+    
+    // Case: Both ready time and review time are on the same weekend
+    if ((readyDay === 0 || readyDay === 6) && (reviewDay === 0 || reviewDay === 6) &&
+        Math.floor(reviewTime / (24 * 60 * 60 * 1000)) - Math.floor(readyTime / (24 * 60 * 60 * 1000)) <= 2) {
+      // Return 0 seconds pickup time
+      return 0;
+    }
+
+    // Set to start of Monday if ready time is on weekend
+    if (readyDay === 0) { // Sunday
+      readyTime.setUTCDate(readyTime.getUTCDate() + 1);
+      readyTime.setUTCHours(0, 0, 0, 0);
+    } else if (readyDay === 6) { // Saturday
+      readyTime.setUTCDate(readyTime.getUTCDate() + 2);
+      readyTime.setUTCHours(0, 0, 0, 0);
+    }
+    // Set to start of Saturday if review time is on Sunday
+    if (reviewDay === 0) { // Sunday
+      reviewTime.setUTCDate(reviewTime.getUTCDate() - 1);
+      reviewTime.setUTCHours(0, 0, 0, 0);
+    } else if (reviewDay === 6) { // Saturday
+      reviewTime.setUTCHours(0, 0, 0, 0);
+    }
+
+    // Calculate raw time difference in milliseconds
+    let weekendDays = countWeekendDays(readyTime, reviewTime);
+    let diffMs = reviewTime - readyTime - (weekendDays * 24 * 60 * 60 * 1000);
+
+    // Ensure we don't return negative values
+    return Math.max(0, Math.floor(diffMs / 1000));
+  }
+}
+
+function countWeekendDays(startDate, endDate) {
+  // Make local copies of dates
+  startDate = new Date(startDate);
+  endDate = new Date(endDate);
+
+  // Ensure startDate is before endDate
+  if (startDate > endDate) {
+    [startDate, endDate] = [endDate, startDate];
+  }
+
+  // Make sure start dates and end dates are not on weekends. We just want to count the weekend days between them.
+  if (startDate.getUTCDay() === 0) {
+    startDate.setUTCDate(startDate.getUTCDate() + 1);
+  } else if (startDate.getDay() === 6) {
+    startDate.setUTCDate(startDate.getUTCDate() + 2);
+  }
+  if (endDate.getUTCDay() === 0) {
+    endDate.setUTCDate(endDate.getUTCDate() - 2);
+  } else if (endDate.getUTCDay() === 6) {
+    endDate.setUTCDate(endDate.getUTCDate() - 1);
+  }
+
+  let count = 0;
+  let current = new Date(startDate);
+
+  while (current <= endDate) {
+    const day = current.getUTCDay();
+    if (day === 0 || day === 6) { // Sunday (0) or Saturday (6)
+      count++;
+    }
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+
+  return count;
 }
 
 export default GitHubClient;

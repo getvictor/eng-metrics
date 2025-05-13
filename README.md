@@ -11,7 +11,7 @@ PR Pickup Time is defined as the time between when a PR is marked as "Ready for 
   - When a draft PR is converted to ready for review
   - If multiple ready_for_review events exist, the tool uses the most recent one that occurred before the first review
 - **End Time**: When the first review submission occurs (comment, approval, or changes requested)
-- **Pickup Time**: The time difference between these two events
+- **Pickup Time**: The time difference between these two events, excluding weekends
 
 This metric helps teams understand how quickly PRs are being reviewed, which can be a key indicator of team efficiency and collaboration.
 
@@ -23,6 +23,7 @@ This metric helps teams understand how quickly PRs are being reviewed, which can
 - Can run as a standalone application or as a GitHub Action
 - Supports multiple repositories
 - Only tracks PRs targeting the main branch
+- Excludes weekends from pickup time calculations
 - Supports print-only mode for testing without BigQuery
 
 ## Prerequisites
@@ -180,7 +181,7 @@ The tool creates a BigQuery table with the following schema:
 | review_date | DATE | Date when the reviewer started looking at the PR |
 | pr_creator | STRING | GitHub username of the PR creator |
 | pr_url | STRING | HTTP link to the PR |
-| pickup_time_seconds | INTEGER | Time in seconds from "Ready for Review" to first review |
+| pickup_time_seconds | INTEGER | Time in seconds from "Ready for Review" to first review (excluding weekends) |
 | repository | STRING | Repository name (owner/repo) |
 | pr_number | INTEGER | PR number (used as primary key) |
 | target_branch | STRING | Branch the PR is targeting (always "main") |
@@ -247,6 +248,7 @@ The project includes unit tests for the core functionality, including table-driv
 - Multiple ready_for_review events are handled correctly (using the most recent one before review)
 - Edge cases like no reviews or no ready events are handled properly
 - PRs with multiple reviews are handled correctly (only the first review is counted)
+- Weekend days are properly excluded from pickup time calculations
 
 ### Linting
 
