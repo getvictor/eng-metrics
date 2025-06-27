@@ -36,7 +36,7 @@ export class BigQueryClient {
       this.bigquery = new BigQuery({
         keyFilename: keyFilePath
       });
-      
+
       logger.info('BigQuery client initialized');
     } catch (err) {
       logger.error('Failed to initialize BigQuery client', err);
@@ -54,37 +54,37 @@ export class BigQueryClient {
     try {
       // Get a reference to the dataset
       const dataset = this.bigquery.dataset(datasetId);
-      
+
       // Check if the dataset exists, create it if it doesn't
       const [datasetExists] = await dataset.exists();
-      
+
       if (!datasetExists) {
         logger.info(`Dataset ${datasetId} does not exist, creating it`);
         await dataset.create();
         logger.info(`Dataset ${datasetId} created`);
       }
-      
+
       // Get a reference to the table
       const table = dataset.table(tableId);
-      
+
       // Check if the table exists, create it if it doesn't
       const [tableExists] = await table.exists();
-      
+
       if (!tableExists) {
         logger.info(`Table ${tableId} does not exist, creating it`);
-        
+
         const options = {
           schema: schema,
           timePartitioning: {
             type: 'DAY',
-            field: 'review_date'
+            field: 'first_review_time'
           },
           // Set pr_number as the primary key
           clustering: {
-            fields: ['pr_number']
+            fields: ['pr_creator']
           }
         };
-        
+
         await table.create(options);
         logger.info(`Table ${tableId} created`);
       }
@@ -144,7 +144,7 @@ export class BigQueryClient {
     try {
       // Get a reference to the table
       const table = this.bigquery.dataset(datasetId).table(tableId);
-      
+
       // Check if the table exists
       const [tableExists] = await table.exists();
       if (!tableExists) {
@@ -154,23 +154,23 @@ export class BigQueryClient {
           return acc;
         }, {});
       }
-      
+
       // Create a query to check for existing PR numbers
       const query = `
         SELECT pr_number
         FROM \`${datasetId}.${tableId}\`
         WHERE pr_number IN (${prNumbers.join(',')})
       `;
-      
+
       // Run the query
       const [rows] = await this.bigquery.query({ query });
-      
+
       // Create a map of existing PR numbers
       const existingPRs = rows.reduce((acc, row) => {
         acc[row.pr_number] = true;
         return acc;
       }, {});
-      
+
       // Return a map of all PR numbers with their existence status
       return prNumbers.reduce((acc, prNumber) => {
         acc[prNumber] = !!existingPRs[prNumber];
@@ -198,55 +198,55 @@ export class BigQueryClient {
         logger.warn('No metrics to upload');
         return;
       }
-      
+
       logger.info(`Uploading ${metrics.length} metrics to BigQuery`);
-      
+
       // Ensure the table exists with the correct schema
       await this.createTableIfNotExists(datasetId, tableId, this.getTableSchema());
-      
+
       // Get all PR numbers from the metrics
       const prNumbers = metrics.map(metric => metric.prNumber);
-      
+
       // Check which PR numbers already exist in BigQuery
       const existingMetrics = await this.checkExistingMetrics(datasetId, tableId, prNumbers);
-      
+
       // Filter out metrics that already exist
       const newMetrics = metrics.filter(metric => !existingMetrics[metric.prNumber]);
-      
+
       if (newMetrics.length === 0) {
         logger.info('All metrics already exist in BigQuery, nothing to upload');
         return;
       }
-      
+
       logger.info(`Uploading ${newMetrics.length} new metrics to BigQuery (${metrics.length - newMetrics.length} already exist)`);
-      
+
       // Transform metrics to BigQuery row format
       const rows = newMetrics.map(metric => this.transformMetricsToRow(metric));
-      
+
       // Get a reference to the table
       const table = this.bigquery.dataset(datasetId).table(tableId);
-      
+
       // Upload the rows to BigQuery
       const [apiResponse] = await table.insert(rows);
-      
+
       logger.info(`Successfully uploaded ${newMetrics.length} metrics to BigQuery`, {
         datasetId,
         tableId,
         insertedRows: newMetrics.length,
         skippedRows: metrics.length - newMetrics.length
       });
-      
+
       return apiResponse;
     } catch (err) {
       logger.error(`Error uploading metrics to BigQuery ${datasetId}.${tableId}`, err);
-      
+
       // Log more details about the error if it's an insertion error
       if (err.name === 'PartialFailureError' && err.errors && err.errors.length > 0) {
         err.errors.forEach((error, index) => {
           logger.error(`Row ${index} error:`, { error });
         });
       }
-      
+
       throw err;
     }
   }
