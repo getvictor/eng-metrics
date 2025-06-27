@@ -1,13 +1,12 @@
 # Dependency directories
-node_modules/
+node_modules
 jspm_packages/
 
 # Environment variables
-.env
+.github/actions/eng-metrics/.env
 
 # Service account key
-service-account-key.json
-*-service-account-key.json
+.github/actions/eng-metrics/service-account-key.json
 
 # Logs
 logs

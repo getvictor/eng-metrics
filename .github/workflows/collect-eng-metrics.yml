@@ -1,4 +1,4 @@
-name: Collect PR Pickup Time Metrics
+name: Collect engineering metrics
 
 on:
   schedule:
@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # 4.2.2
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # 4.4.0
         with:
-          node-version: '16'
+          node-version: '20.18.1'
           cache: 'npm'
 
       - name: Install dependencies
@@ -28,7 +28,7 @@ jobs:
           cat service-account-key.json | jq . > /dev/null
 
       - name: Collect and upload metrics
-        uses: ./
+        uses: ./.github/actions/eng-metrics
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           config-path: './config.json'
