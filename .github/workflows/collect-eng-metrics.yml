@@ -31,15 +31,6 @@ jobs:
 
       - name: Collect and upload metrics
         uses: ./.github/actions/eng-metrics
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          config-path: './config.json'
-          bigquery-project: ${{ secrets.BIGQUERY_PROJECT_ID }}
-          bigquery-dataset: 'github_metrics'
-          bigquery-table: 'first_review'
-          target-branch: 'main'
-          lookback-days: '5'
-          print-only: 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BIGQUERY_PROJECT_ID: ${{ secrets.BIGQUERY_PROJECT_ID }}
