@@ -4,8 +4,8 @@
   ],
   "targetBranch": "main",
   "bigQueryDatasetId": "github_metrics",
-  "bigQueryTableId": "pr_pickup_time",
-  "lookbackDays": 30,
+  "bigQueryTableId": "first_review",
+  "lookbackDays": 5,
   "serviceAccountKeyPath": "./service-account-key.json",
   "printOnly": false
 }

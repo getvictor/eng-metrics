@@ -20,14 +20,14 @@ path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG = {
   // Default target branch to track PRs for
   targetBranch: 'main',
-  
+
   // Default BigQuery dataset and table IDs
   bigQueryDatasetId: 'github_metrics',
-  bigQueryTableId: 'pr_pickup_time',
-  
+  bigQueryTableId: 'first_review',
+
   // Default time window for fetching PRs (in days)
-  lookbackDays: 30,
-  
+  lookbackDays: 5,
+
   // Default print-only mode (false = upload to BigQuery, true = print to console)
   printOnly: false
 };
@@ -41,12 +41,12 @@ const loadConfigFromFile = (configPath) => {
   try {
     const resolvedPath = path.resolve(process.cwd(), configPath);
     logger.info(`Loading configuration from ${resolvedPath}`);
-    
+
     if (!fs.existsSync(resolvedPath)) {
       logger.warn(`Configuration file not found at ${resolvedPath}`);
       return {};
     }
-    
+
     const configData = fs.readFileSync(resolvedPath, 'utf8');
     return JSON.parse(configData);
   } catch (err) {
@@ -62,12 +62,12 @@ const loadConfigFromFile = (configPath) => {
 const loadConfigFromEnv = () => {
   // Create a config object with only defined values
   const config = {};
-  
+
   // Parse repositories from environment variable if provided
   if (process.env.REPOSITORIES) {
     config.repositories = process.env.REPOSITORIES.split(',').map(repo => repo.trim());
   }
-  
+
   // Add other environment variables if they are defined
   if (process.env.GITHUB_TOKEN) config.githubToken = process.env.GITHUB_TOKEN;
   if (process.env.BIGQUERY_PROJECT_ID) config.bigQueryProjectId = process.env.BIGQUERY_PROJECT_ID;
@@ -76,7 +76,7 @@ const loadConfigFromEnv = () => {
   if (process.env.SERVICE_ACCOUNT_KEY_PATH) config.serviceAccountKeyPath = process.env.SERVICE_ACCOUNT_KEY_PATH;
   if (process.env.TARGET_BRANCH) config.targetBranch = process.env.TARGET_BRANCH;
   if (process.env.PRINT_ONLY) config.printOnly = process.env.PRINT_ONLY === 'true';
-  
+
   return config;
 };
 
@@ -91,35 +91,35 @@ const validateConfig = (config) => {
     'repositories',
     'githubToken'
   ];
-  
+
   // Fields required only when not in print-only mode
   if (!config.printOnly) {
     requiredFields.push('bigQueryProjectId', 'serviceAccountKeyPath');
   }
-  
+
   const missingFields = requiredFields.filter(field => !config[field]);
-  
+
   if (missingFields.length > 0) {
     logger.error(`Missing required configuration fields: ${missingFields.join(', ')}`);
     return false;
   }
-  
+
   // Validate repositories array
   if (!Array.isArray(config.repositories) || config.repositories.length === 0) {
     logger.error('Configuration must include at least one repository');
     return false;
   }
-  
+
   // Validate repository format (owner/repo)
   const invalidRepos = config.repositories.filter(repo => {
     return typeof repo !== 'string' || !repo.includes('/');
   });
-  
+
   if (invalidRepos.length > 0) {
     logger.error(`Invalid repository format: ${invalidRepos.join(', ')}`);
     return false;
   }
-  
+
   return true;
 };
 
@@ -131,10 +131,10 @@ const validateConfig = (config) => {
 export const loadConfig = (configPath = 'config.json') => {
   // Load configuration from file
   const fileConfig = loadConfigFromFile(configPath);
-  
+
   // Load configuration from environment variables
   const envConfig = loadConfigFromEnv();
-  
+
   // Merge configurations with precedence: env > file > default
   const config = {
     ...DEFAULT_CONFIG,
@@ -148,14 +148,14 @@ export const loadConfig = (configPath = 'config.json') => {
       delete config[key];
     }
   });
-  
+
   // Validate configuration
   const isValid = validateConfig(config);
-  
+
   if (!isValid) {
     throw new Error('Invalid configuration');
   }
-  
+
   logger.info('Configuration loaded successfully', {
     repositories: config.repositories,
     targetBranch: config.targetBranch,
@@ -165,7 +165,7 @@ export const loadConfig = (configPath = 'config.json') => {
       bigQueryTableId: config.bigQueryTableId
     })
   });
-  
+
   return config;
 };
 

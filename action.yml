@@ -7,36 +7,36 @@ inputs:
     description: 'GitHub token for API access'
     required: true
     default: ${{ github.token }}
-  
+
   config-path:
     description: 'Path to the configuration file'
     required: false
     default: 'config.json'
-  
+
   bigquery-project:
     description: 'Google Cloud project ID'
     required: true
-  
+
   bigquery-dataset:
     description: 'BigQuery dataset ID'
     required: false
     default: 'github_metrics'
-  
+
   bigquery-table:
     description: 'BigQuery table ID'
     required: false
-    default: 'pr_pickup_time'
-  
+    default: 'first_review'
+
   target-branch:
     description: 'Target branch to track PRs for'
     required: false
     default: 'main'
-  
+
   lookback-days:
     description: 'Number of days to look back for PRs'
     required: false
     default: '30'
-  
+
   print-only:
     description: 'Print metrics to console instead of uploading to BigQuery'
     required: false

@@ -58,8 +58,8 @@ Create a `config.json` file with the following structure:
   ],
   "targetBranch": "main",
   "bigQueryDatasetId": "github_metrics",
-  "bigQueryTableId": "pr_pickup_time",
-  "lookbackDays": 30,
+  "bigQueryTableId": "first_review",
+  "lookbackDays": 5,
   "serviceAccountKeyPath": "./service-account-key.json",
   "printOnly": false
 }
@@ -142,9 +142,9 @@ jobs:
           config-path: './config.json'
           bigquery-project: ${{ secrets.BIGQUERY_PROJECT_ID }}
           bigquery-dataset: 'github_metrics'
-          bigquery-table: 'pr_pickup_time'
+          bigquery-table: 'first_review'
           target-branch: 'main'
-          lookback-days: '30'
+          lookback-days: '5'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BIGQUERY_PROJECT_ID: ${{ secrets.BIGQUERY_PROJECT_ID }}
@@ -215,7 +215,7 @@ SELECT
   repository,
   AVG(pickup_time_seconds) / 3600 AS avg_pickup_time_hours
 FROM
-  `your-project.github_metrics.pr_pickup_time`
+  `your-project.github_metrics.first_review`
 GROUP BY
   repository
 ORDER BY
@@ -226,7 +226,7 @@ SELECT
   DATE_TRUNC(review_date, WEEK) AS week,
   AVG(pickup_time_seconds) / 3600 AS avg_pickup_time_hours
 FROM
-  `your-project.github_metrics.pr_pickup_time`
+  `your-project.github_metrics.first_review`
 GROUP BY
   week
 ORDER BY
