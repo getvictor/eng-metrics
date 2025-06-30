@@ -72,8 +72,8 @@ describe('Time to Merge Integration Tests', () => {
     // Create client without file validation
     const bigqueryClient = Object.create(BigQueryClient.prototype);
 
-    const firstReviewSchema = bigqueryClient.getTableSchema('first_review');
-    const mergeSchema = bigqueryClient.getTableSchema('pr_merge');
+    const firstReviewSchema = bigqueryClient.getSchemaForMetricType('time_to_first_review');
+    const mergeSchema = bigqueryClient.getSchemaForMetricType('time_to_merge');
 
     // Verify first_review schema
     expect(firstReviewSchema.fields).toContainEqual(

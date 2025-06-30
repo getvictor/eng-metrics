@@ -55,9 +55,9 @@ describe('BigQueryClient', () => {
     bigqueryClient.bigquery = mockBigQuery;
   });
 
-  describe('getTableSchema', () => {
+  describe('getSchemaForMetricType', () => {
     test('should return first_review table schema', () => {
-      const schema = bigqueryClient.getTableSchema('first_review');
+      const schema = bigqueryClient.getSchemaForMetricType('time_to_first_review');
 
       expect(schema.fields).toEqual([
         { name: 'review_date', type: 'DATE', mode: 'REQUIRED' },
@@ -73,7 +73,7 @@ describe('BigQueryClient', () => {
     });
 
     test('should return pr_merge table schema', () => {
-      const schema = bigqueryClient.getTableSchema('pr_merge');
+      const schema = bigqueryClient.getSchemaForMetricType('time_to_merge');
 
       expect(schema.fields).toEqual([
         { name: 'merge_date', type: 'DATE', mode: 'REQUIRED' },
@@ -88,16 +88,16 @@ describe('BigQueryClient', () => {
       ]);
     });
 
-    test('should throw error for unknown table', () => {
+    test('should throw error for unknown metric type', () => {
       expect(() => {
-        bigqueryClient.getTableSchema('unknown_table');
-      }).toThrow('Unknown table: unknown_table');
+        bigqueryClient.getSchemaForMetricType('unknown_metric');
+      }).toThrow('Unknown metric type: unknown_metric');
     });
   });
 
-  describe('getTableConfiguration', () => {
+  describe('getConfigurationForMetricType', () => {
     test('should return first_review table configuration', () => {
-      const config = bigqueryClient.getTableConfiguration('first_review');
+      const config = bigqueryClient.getConfigurationForMetricType('time_to_first_review');
 
       expect(config).toEqual({
         timePartitioning: {
@@ -111,7 +111,7 @@ describe('BigQueryClient', () => {
     });
 
     test('should return pr_merge table configuration', () => {
-      const config = bigqueryClient.getTableConfiguration('pr_merge');
+      const config = bigqueryClient.getConfigurationForMetricType('time_to_merge');
 
       expect(config).toEqual({
         timePartitioning: {
@@ -124,10 +124,10 @@ describe('BigQueryClient', () => {
       });
     });
 
-    test('should throw error for unknown table configuration', () => {
+    test('should throw error for unknown metric type configuration', () => {
       expect(() => {
-        bigqueryClient.getTableConfiguration('unknown_table');
-      }).toThrow('Unknown table configuration for: unknown_table');
+        bigqueryClient.getConfigurationForMetricType('unknown_metric');
+      }).toThrow('Unknown metric type for table configuration: unknown_metric');
     });
   });
 
@@ -206,7 +206,7 @@ describe('BigQueryClient', () => {
       mockTable.exists.mockResolvedValue([false]);
       const schema = { fields: [] };
 
-      await bigqueryClient.createTableIfNotExists('test_dataset', 'first_review', schema);
+      await bigqueryClient.createTableIfNotExists('test_dataset', 'first_review', schema, 'time_to_first_review');
 
       expect(mockTable.create).toHaveBeenCalledWith({
         schema: schema,
@@ -224,7 +224,7 @@ describe('BigQueryClient', () => {
       mockTable.exists.mockResolvedValue([false]);
       const schema = { fields: [] };
 
-      await bigqueryClient.createTableIfNotExists('test_dataset', 'pr_merge', schema);
+      await bigqueryClient.createTableIfNotExists('test_dataset', 'pr_merge', schema, 'time_to_merge');
 
       expect(mockTable.create).toHaveBeenCalledWith({
         schema: schema,
@@ -242,7 +242,7 @@ describe('BigQueryClient', () => {
       mockTable.exists.mockResolvedValue([true]);
       const schema = { fields: [] };
 
-      await bigqueryClient.createTableIfNotExists('test_dataset', 'first_review', schema);
+      await bigqueryClient.createTableIfNotExists('test_dataset', 'first_review', schema, 'time_to_first_review');
 
       expect(mockTable.create).not.toHaveBeenCalled();
     });

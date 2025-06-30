@@ -49,8 +49,9 @@ export class BigQueryClient {
    * @param {string} datasetId - BigQuery dataset ID
    * @param {string} tableId - BigQuery table ID
    * @param {Object} schema - BigQuery table schema
+   * @param {string} metricType - Type of metric (e.g., 'time_to_first_review', 'time_to_merge')
    */
-  async createTableIfNotExists(datasetId, tableId, schema) {
+  async createTableIfNotExists(datasetId, tableId, schema, metricType) {
     try {
       // Get a reference to the dataset
       const dataset = this.bigquery.dataset(datasetId);
@@ -73,9 +74,9 @@ export class BigQueryClient {
       if (!tableExists) {
         logger.info(`Table ${tableId} does not exist, creating it`);
 
-        // Get table-specific configuration
-        const tableConfig = this.getTableConfiguration(tableId);
-        
+        // Get table-specific configuration based on metric type
+        const tableConfig = this.getConfigurationForMetricType(metricType);
+
         const options = {
           schema,
           timePartitioning: tableConfig.timePartitioning,
@@ -92,13 +93,13 @@ export class BigQueryClient {
   }
 
   /**
-   * Gets table-specific configuration for partitioning and clustering
-   * @param {string} tableId - BigQuery table ID
+   * Gets table-specific configuration for partitioning and clustering based on metric type
+   * @param {string} metricType - Type of metric (e.g., 'time_to_first_review', 'time_to_merge')
    * @returns {Object} Table configuration
    */
-  getTableConfiguration(tableId) {
-    switch (tableId) {
-    case 'first_review':
+  getConfigurationForMetricType(metricType) {
+    switch (metricType) {
+    case 'time_to_first_review':
       return {
         timePartitioning: {
           type: 'DAY',
@@ -108,8 +109,8 @@ export class BigQueryClient {
           fields: ['pr_creator']
         }
       };
-      
-    case 'pr_merge':
+
+    case 'time_to_merge':
       return {
         timePartitioning: {
           type: 'DAY',
@@ -119,20 +120,20 @@ export class BigQueryClient {
           fields: ['pr_creator']
         }
       };
-      
+
     default:
-      throw new Error(`Unknown table configuration for: ${tableId}`);
+      throw new Error(`Unknown metric type for table configuration: ${metricType}`);
     }
   }
 
   /**
-   * Gets the BigQuery table schema for a specific table
-   * @param {string} tableName - Name of the table
+   * Gets the BigQuery table schema for a specific metric type
+   * @param {string} metricType - Type of metric (e.g., 'time_to_first_review', 'time_to_merge')
    * @returns {Object} BigQuery table schema
    */
-  getTableSchema(tableName) {
-    switch (tableName) {
-    case 'first_review':
+  getSchemaForMetricType(metricType) {
+    switch (metricType) {
+    case 'time_to_first_review':
       return {
         fields: [
           { name: 'review_date', type: 'DATE', mode: 'REQUIRED' },
@@ -146,8 +147,8 @@ export class BigQueryClient {
           { name: 'first_review_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
         ]
       };
-      
-    case 'pr_merge':
+
+    case 'time_to_merge':
       return {
         fields: [
           { name: 'merge_date', type: 'DATE', mode: 'REQUIRED' },
@@ -161,9 +162,9 @@ export class BigQueryClient {
           { name: 'merge_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
         ]
       };
-      
+
     default:
-      throw new Error(`Unknown table: ${tableName}`);
+      throw new Error(`Unknown metric type: ${metricType}`);
     }
   }
 
@@ -186,7 +187,7 @@ export class BigQueryClient {
         ready_time: metrics.readyTime.toISOString(),
         first_review_time: metrics.firstReviewTime.toISOString()
       };
-      
+
     case 'time_to_merge':
       return {
         merge_date: metrics.mergeDate,
@@ -199,7 +200,7 @@ export class BigQueryClient {
         ready_time: metrics.readyTime.toISOString(),
         merge_time: metrics.mergeTime.toISOString()
       };
-      
+
     default:
       throw new Error(`Unknown metric type: ${metrics.metricType}`);
     }
@@ -273,9 +274,15 @@ export class BigQueryClient {
 
       logger.info(`Uploading ${metrics.length} metrics to BigQuery table ${tableId}`);
 
+      // Get metric type from the first metric to determine schema
+      const metricType = metrics[0]?.metricType;
+      if (!metricType) {
+        throw new Error('Metrics must have a metricType field');
+      }
+
       // Ensure the table exists with the correct schema
-      const schema = this.getTableSchema(tableId);
-      await this.createTableIfNotExists(datasetId, tableId, schema);
+      const schema = this.getSchemaForMetricType(metricType);
+      await this.createTableIfNotExists(datasetId, tableId, schema, metricType);
 
       // Get all PR numbers from the metrics
       const prNumbers = metrics.map(metric => metric.prNumber);
