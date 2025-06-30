@@ -27,7 +27,7 @@ export class BigQueryClient {
   initialize(keyFilePath) {
     // Check if the key file exists
     if (!fs.existsSync(keyFilePath)) {
-      let err = new Error(`Service account key file not found at ${keyFilePath}`);
+      const err = new Error(`Service account key file not found at ${keyFilePath}`);
       logger.error('Failed to initialize BigQuery client', err);
       throw err;
     }
@@ -77,7 +77,7 @@ export class BigQueryClient {
         const tableConfig = this.getTableConfiguration(tableId);
         
         const options = {
-          schema: schema,
+          schema,
           timePartitioning: tableConfig.timePartitioning,
           clustering: tableConfig.clustering
         };
@@ -98,30 +98,30 @@ export class BigQueryClient {
    */
   getTableConfiguration(tableId) {
     switch (tableId) {
-      case 'first_review':
-        return {
-          timePartitioning: {
-            type: 'DAY',
-            field: 'first_review_time'
-          },
-          clustering: {
-            fields: ['pr_creator']
-          }
-        };
+    case 'first_review':
+      return {
+        timePartitioning: {
+          type: 'DAY',
+          field: 'first_review_time'
+        },
+        clustering: {
+          fields: ['pr_creator']
+        }
+      };
       
-      case 'pr_merge':
-        return {
-          timePartitioning: {
-            type: 'DAY',
-            field: 'merge_time'
-          },
-          clustering: {
-            fields: ['pr_creator']
-          }
-        };
+    case 'pr_merge':
+      return {
+        timePartitioning: {
+          type: 'DAY',
+          field: 'merge_time'
+        },
+        clustering: {
+          fields: ['pr_creator']
+        }
+      };
       
-      default:
-        throw new Error(`Unknown table configuration for: ${tableId}`);
+    default:
+      throw new Error(`Unknown table configuration for: ${tableId}`);
     }
   }
 
@@ -132,38 +132,38 @@ export class BigQueryClient {
    */
   getTableSchema(tableName) {
     switch (tableName) {
-      case 'first_review':
-        return {
-          fields: [
-            { name: 'review_date', type: 'DATE', mode: 'REQUIRED' },
-            { name: 'pr_creator', type: 'STRING', mode: 'REQUIRED' },
-            { name: 'pr_url', type: 'STRING', mode: 'REQUIRED' },
-            { name: 'pickup_time_seconds', type: 'INTEGER', mode: 'REQUIRED' },
-            { name: 'repository', type: 'STRING', mode: 'REQUIRED' },
-            { name: 'pr_number', type: 'INTEGER', mode: 'REQUIRED' },
-            { name: 'target_branch', type: 'STRING', mode: 'REQUIRED' },
-            { name: 'ready_time', type: 'TIMESTAMP', mode: 'REQUIRED' },
-            { name: 'first_review_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
-          ]
-        };
+    case 'first_review':
+      return {
+        fields: [
+          { name: 'review_date', type: 'DATE', mode: 'REQUIRED' },
+          { name: 'pr_creator', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'pr_url', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'pickup_time_seconds', type: 'INTEGER', mode: 'REQUIRED' },
+          { name: 'repository', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'pr_number', type: 'INTEGER', mode: 'REQUIRED' },
+          { name: 'target_branch', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'ready_time', type: 'TIMESTAMP', mode: 'REQUIRED' },
+          { name: 'first_review_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
+        ]
+      };
       
-      case 'pr_merge':
-        return {
-          fields: [
-            { name: 'merge_date', type: 'DATE', mode: 'REQUIRED' },
-            { name: 'pr_creator', type: 'STRING', mode: 'REQUIRED' },
-            { name: 'pr_url', type: 'STRING', mode: 'REQUIRED' },
-            { name: 'merge_time_seconds', type: 'INTEGER', mode: 'REQUIRED' },
-            { name: 'repository', type: 'STRING', mode: 'REQUIRED' },
-            { name: 'pr_number', type: 'INTEGER', mode: 'REQUIRED' },
-            { name: 'target_branch', type: 'STRING', mode: 'REQUIRED' },
-            { name: 'ready_time', type: 'TIMESTAMP', mode: 'REQUIRED' },
-            { name: 'merge_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
-          ]
-        };
+    case 'pr_merge':
+      return {
+        fields: [
+          { name: 'merge_date', type: 'DATE', mode: 'REQUIRED' },
+          { name: 'pr_creator', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'pr_url', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'merge_time_seconds', type: 'INTEGER', mode: 'REQUIRED' },
+          { name: 'repository', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'pr_number', type: 'INTEGER', mode: 'REQUIRED' },
+          { name: 'target_branch', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'ready_time', type: 'TIMESTAMP', mode: 'REQUIRED' },
+          { name: 'merge_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
+        ]
+      };
       
-      default:
-        throw new Error(`Unknown table: ${tableName}`);
+    default:
+      throw new Error(`Unknown table: ${tableName}`);
     }
   }
 
@@ -174,34 +174,34 @@ export class BigQueryClient {
    */
   transformMetricsToRow(metrics) {
     switch (metrics.metricType) {
-      case 'time_to_first_review':
-        return {
-          review_date: metrics.reviewDate,
-          pr_creator: metrics.prCreator,
-          pr_url: metrics.prUrl,
-          pickup_time_seconds: metrics.pickupTimeSeconds,
-          repository: metrics.repository,
-          pr_number: metrics.prNumber,
-          target_branch: metrics.targetBranch,
-          ready_time: metrics.readyTime.toISOString(),
-          first_review_time: metrics.firstReviewTime.toISOString()
-        };
+    case 'time_to_first_review':
+      return {
+        review_date: metrics.reviewDate,
+        pr_creator: metrics.prCreator,
+        pr_url: metrics.prUrl,
+        pickup_time_seconds: metrics.pickupTimeSeconds,
+        repository: metrics.repository,
+        pr_number: metrics.prNumber,
+        target_branch: metrics.targetBranch,
+        ready_time: metrics.readyTime.toISOString(),
+        first_review_time: metrics.firstReviewTime.toISOString()
+      };
       
-      case 'time_to_merge':
-        return {
-          merge_date: metrics.mergeDate,
-          pr_creator: metrics.prCreator,
-          pr_url: metrics.prUrl,
-          merge_time_seconds: metrics.mergeTimeSeconds,
-          repository: metrics.repository,
-          pr_number: metrics.prNumber,
-          target_branch: metrics.targetBranch,
-          ready_time: metrics.readyTime.toISOString(),
-          merge_time: metrics.mergeTime.toISOString()
-        };
+    case 'time_to_merge':
+      return {
+        merge_date: metrics.mergeDate,
+        pr_creator: metrics.prCreator,
+        pr_url: metrics.prUrl,
+        merge_time_seconds: metrics.mergeTimeSeconds,
+        repository: metrics.repository,
+        pr_number: metrics.prNumber,
+        target_branch: metrics.targetBranch,
+        ready_time: metrics.readyTime.toISOString(),
+        merge_time: metrics.mergeTime.toISOString()
+      };
       
-      default:
-        throw new Error(`Unknown metric type: ${metrics.metricType}`);
+    default:
+      throw new Error(`Unknown metric type: ${metrics.metricType}`);
     }
   }
 

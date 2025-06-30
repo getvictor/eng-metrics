@@ -317,8 +317,8 @@ export class GitHubClient {
    * @returns {number} Pickup time in seconds, excluding weekends
    */
   calculatePickupTimeExcludingWeekends(readyTimeOrig, reviewTimeOrig) {
-    let readyTime = new Date(readyTimeOrig);
-    let reviewTime = new Date(reviewTimeOrig);
+    const readyTime = new Date(readyTimeOrig);
+    const reviewTime = new Date(reviewTimeOrig);
 
     // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
     const readyDay = readyTime.getUTCDay();
@@ -348,8 +348,8 @@ export class GitHubClient {
     }
 
     // Calculate raw time difference in milliseconds
-    let weekendDays = countWeekendDays(readyTime, reviewTime);
-    let diffMs = reviewTime - readyTime - (weekendDays * 24 * 60 * 60 * 1000);
+    const weekendDays = countWeekendDays(readyTime, reviewTime);
+    const diffMs = reviewTime - readyTime - (weekendDays * 24 * 60 * 60 * 1000);
 
     // Ensure we don't return negative values
     return Math.max(0, Math.floor(diffMs / 1000));
@@ -476,7 +476,7 @@ function countWeekendDays(startDate, endDate) {
   }
 
   let count = 0;
-  let current = new Date(startDate);
+  const current = new Date(startDate);
 
   while (current <= endDate) {
     const day = current.getUTCDay();

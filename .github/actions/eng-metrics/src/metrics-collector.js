@@ -57,7 +57,7 @@ export class MetricsCollector {
   async collectRepositoryMetrics(repository) {
     const [owner, repo] = repository.split('/');
     if (!owner || !repo) {
-      let err = new Error(`Invalid repository format: ${repository}`);
+      const err = new Error(`Invalid repository format: ${repository}`);
       logger.error(`Error collecting metrics for ${repository}`, err);
       return [];
     }
@@ -287,12 +287,12 @@ export class MetricsCollector {
    */
   getMetricTypeDisplayName(metricType) {
     switch (metricType) {
-      case 'time_to_first_review':
-        return 'Time to First Review';
-      case 'time_to_merge':
-        return 'Time to Merge';
-      default:
-        return metricType;
+    case 'time_to_first_review':
+      return 'Time to First Review';
+    case 'time_to_merge':
+      return 'Time to Merge';
+    default:
+      return metricType;
     }
   }
 
@@ -304,12 +304,12 @@ export class MetricsCollector {
    */
   getTimeFieldForMetricType(metricType, metric) {
     switch (metricType) {
-      case 'time_to_first_review':
-        return metric.pickupTimeSeconds;
-      case 'time_to_merge':
-        return metric.mergeTimeSeconds;
-      default:
-        return 0;
+    case 'time_to_first_review':
+      return metric.pickupTimeSeconds;
+    case 'time_to_merge':
+      return metric.mergeTimeSeconds;
+    default:
+      return 0;
     }
   }
 
@@ -373,12 +373,12 @@ export class MetricsCollector {
    */
   getTableNameForMetricType(metricType) {
     switch (metricType) {
-      case 'time_to_first_review':
-        return this.config.metrics.timeToFirstReview.tableName;
-      case 'time_to_merge':
-        return this.config.metrics.timeToMerge.tableName;
-      default:
-        throw new Error(`Unknown metric type: ${metricType}`);
+    case 'time_to_first_review':
+      return this.config.metrics.timeToFirstReview.tableName;
+    case 'time_to_merge':
+      return this.config.metrics.timeToMerge.tableName;
+    default:
+      throw new Error(`Unknown metric type: ${metricType}`);
     }
   }
 
