@@ -40,8 +40,8 @@ Measures the time from issue reaching "In Progress" status to when it reaches "R
 ## Current Implementation Status
 
 - ✅ **Time to First Review**: Fully implemented and active
-- 🚧 **Time to Merge**: Planned for future implementation
-- 🚧 **Time to QA Ready**: Planned for future implementation  
+- 🚧 **Time to Merge**: Implementation planned with detailed specifications (see [implementation plan](TIME_TO_MERGE_IMPLEMENTATION.md))
+- 🚧 **Time to QA Ready**: Planned for future implementation
 - 🚧 **Time to Production Ready**: Planned for future implementation
 
 ## Features
@@ -90,7 +90,17 @@ Create a `config.json` file with the following structure:
   "bigQueryTableId": "first_review",
   "lookbackDays": 5,
   "serviceAccountKeyPath": "./service-account-key.json",
-  "printOnly": false
+  "printOnly": false,
+  "metrics": {
+    "timeToFirstReview": {
+      "enabled": true,
+      "tableName": "first_review"
+    },
+    "timeToMerge": {
+      "enabled": true,
+      "tableName": "pr_merge"
+    }
+  }
 }
 ```
 
@@ -106,6 +116,8 @@ You can also configure the tool using environment variables:
 - `SERVICE_ACCOUNT_KEY_PATH`: Path to the service account key file (optional, defaults to config.json)
 - `TARGET_BRANCH`: Target branch to track PRs for (optional, default: main)
 - `PRINT_ONLY`: Set to 'true' to print metrics to console instead of uploading to BigQuery
+- `ENABLED_METRICS`: Comma-separated list of metrics to collect (e.g., "time_to_first_review,time_to_merge")
+- `TIME_TO_MERGE_TABLE`: Override table name for Time to Merge metrics (optional, defaults to "pr_merge")
 
 Create a `.env` file based on the provided `.env.example` to set these variables.
 
@@ -199,42 +211,54 @@ Make sure to set the following secrets in your repository:
 
 ## BigQuery Schema
 
-### Current Schema (Time to First Review)
+### Multi-Table Architecture
 
-The tool currently creates a BigQuery table with the following schema:
+The tool uses separate BigQuery tables for different metric types to optimize performance and enable independent analysis:
+
+#### Table 1: `first_review` (Time to First Review)
 
 | Field | Type | Description |
 |-------|------|-------------|
 | review_date | DATE | Date when the reviewer started looking at the PR |
-| pr_creator | STRING | GitHub username of the PR creator (cluster) |
+| pr_creator | STRING | GitHub username of the PR creator |
 | pr_url | STRING | HTTP link to the PR |
 | pickup_time_seconds | INTEGER | Time in seconds from "Ready for Review" to first review (excluding weekends) |
 | repository | STRING | Repository name (owner/repo) |
-| pr_number | INTEGER | PR number |
+| pr_number | INTEGER | PR number (primary key) |
 | target_branch | STRING | Branch the PR is targeting (always "main") |
 | ready_time | TIMESTAMP | Timestamp when PR was marked ready for review |
-| first_review_time | TIMESTAMP | Timestamp of first review activity (partition) |
+| first_review_time | TIMESTAMP | Timestamp of first review activity |
 
-### Planned Schema Extensions
-
-Future versions will extend the schema to include additional metrics:
+#### Table 2: `pr_merge` (Time to Merge) - Planned
 
 | Field | Type | Description |
 |-------|------|-------------|
-| metric_type | STRING | Type of metric (time_to_first_review, time_to_merge, time_to_qa_ready, time_to_production_ready) |
-| merge_time | TIMESTAMP | Timestamp when PR was merged (for time_to_merge) |
-| issue_number | INTEGER | Issue number (for project-based metrics) |
-| issue_created_time | TIMESTAMP | Timestamp when issue was created |
-| qa_ready_time | TIMESTAMP | Timestamp when issue reached QA ready status |
-| production_ready_time | TIMESTAMP | Timestamp when issue reached production ready status |
-| time_to_merge_seconds | INTEGER | Time from ready to merge (excluding weekends) |
-| time_to_qa_ready_seconds | INTEGER | Time from issue creation to QA ready (excluding weekends) |
-| time_to_production_ready_seconds | INTEGER | Time from issue creation to production ready (excluding weekends) |
+| merge_date | DATE | Date when the PR was merged |
+| pr_creator | STRING | GitHub username of the PR creator (cluster key) |
+| pr_url | STRING | HTTP link to the PR |
+| merge_time_seconds | INTEGER | Time in seconds from "Ready for Review" to merge (excluding weekends) |
+| repository | STRING | Repository name (owner/repo) |
+| pr_number | INTEGER | PR number (unique constraint) |
+| target_branch | STRING | Branch the PR is targeting (always "main") |
+| ready_time | TIMESTAMP | Timestamp when PR was marked ready for review |
+| merge_time | TIMESTAMP | Timestamp when PR was merged (partition key) |
 
-The table uses `pr_number` as the primary key for PR-based metrics and `issue_number` for issue-based metrics, which means:
-- Each PR/issue is only stored once in the database per metric type
-- If a record already exists in the database, it will not be updated or overwritten
-- This ensures that the first calculation of each metric is preserved
+**Table Optimizations:**
+- `pr_merge` table is partitioned by `DATE(merge_time)` for efficient date-range queries
+- `pr_merge` table is clustered by `pr_creator` for efficient user-based analysis
+- Each table uses `pr_number` as unique identifier (enforced at application level)
+- Records are insert-only (no updates) to preserve historical data integrity
+
+### Future Tables (GitHub Projects Integration)
+
+Additional tables will be added for issue lifecycle metrics:
+- `issue_qa_ready`: Time from issue creation to QA ready status
+- `issue_production_ready`: Time from issue creation to production ready status
+
+Each table maintains data consistency by:
+- Using the same `ready_time` calculation logic across PR-based metrics
+- Excluding weekends from all time calculations
+- Preventing duplicate records through primary key constraints
 
 ## Print-Only Mode
 
@@ -247,6 +271,102 @@ To enable print-only mode:
 3. Use the `--print-only` command line flag
 
 When running in print-only mode, you don't need to provide BigQuery credentials or configuration.
+
+## Example Queries
+
+Once you have data in BigQuery, you can run queries to analyze your engineering metrics:
+
+### Time to First Review Analysis
+
+```sql
+-- Average time to first review by repository
+SELECT
+  repository,
+  AVG(pickup_time_seconds) / 3600 AS avg_time_to_first_review_hours,
+  COUNT(*) AS total_prs
+FROM
+  `your-project.github_metrics.first_review`
+WHERE
+  review_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+GROUP BY
+  repository
+ORDER BY
+  avg_time_to_first_review_hours;
+
+-- Time to first review trend over time
+SELECT
+  DATE_TRUNC(review_date, WEEK) AS week,
+  AVG(pickup_time_seconds) / 3600 AS avg_time_to_first_review_hours,
+  COUNT(*) AS pr_count
+FROM
+  `your-project.github_metrics.first_review`
+WHERE
+  review_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 WEEK)
+GROUP BY
+  week
+ORDER BY
+  week;
+```
+
+### Time to Merge Analysis (When Available)
+
+```sql
+-- Average time to merge by repository
+SELECT
+  repository,
+  AVG(merge_time_seconds) / 3600 AS avg_time_to_merge_hours,
+  COUNT(*) AS total_merged_prs
+FROM
+  `your-project.github_metrics.pr_merge`
+WHERE
+  merge_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+GROUP BY
+  repository
+ORDER BY
+  avg_time_to_merge_hours;
+
+-- Compare time to first review vs time to merge
+SELECT
+  fr.repository,
+  AVG(fr.pickup_time_seconds) / 3600 AS avg_time_to_first_review_hours,
+  AVG(pm.merge_time_seconds) / 3600 AS avg_time_to_merge_hours,
+  COUNT(fr.pr_number) AS reviewed_prs,
+  COUNT(pm.pr_number) AS merged_prs
+FROM
+  `your-project.github_metrics.first_review` fr
+FULL OUTER JOIN
+  `your-project.github_metrics.pr_merge` pm
+ON
+  fr.pr_number = pm.pr_number
+WHERE
+  fr.review_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+  OR pm.merge_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+GROUP BY
+  fr.repository
+ORDER BY
+  fr.repository;
+```
+
+### Team Performance Analysis
+
+```sql
+-- Top performers by review speed
+SELECT
+  pr_creator,
+  COUNT(*) AS total_prs,
+  AVG(pickup_time_seconds) / 3600 AS avg_time_to_first_review_hours,
+  PERCENTILE_CONT(pickup_time_seconds, 0.5) OVER() / 3600 AS median_time_hours
+FROM
+  `your-project.github_metrics.first_review`
+WHERE
+  review_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+GROUP BY
+  pr_creator
+HAVING
+  COUNT(*) >= 5  -- Only include creators with at least 5 PRs
+ORDER BY
+  avg_time_to_first_review_hours;
+```
 
 ## Development
 
@@ -279,10 +399,14 @@ npm run lint
 - ✅ GitHub Action workflow
 - ✅ Print-only mode for testing
 
-### Phase 2: Additional PR Metrics
-- 🚧 Time to Merge metric
-- 🚧 Extended BigQuery schema
-- 🚧 Multi-metric support in queries
+### Phase 2: Time to Merge Implementation (In Progress)
+- 🚧 Time to Merge metric calculation
+- 🚧 New `pr_merge` BigQuery table with partitioning/clustering
+- 🚧 Multi-table architecture support
+- 🚧 Configuration system for multiple metrics
+- 🚧 Enhanced testing for merge time calculations
+
+**Implementation Details**: See [`TIME_TO_MERGE_IMPLEMENTATION.md`](TIME_TO_MERGE_IMPLEMENTATION.md) for detailed technical specifications.
 
 ### Phase 3: GitHub Projects Integration
 - 🚧 GitHub Projects API integration

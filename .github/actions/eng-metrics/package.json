@@ -10,8 +10,12 @@
   "scripts": {
     "start": "node src/index.js",
     "start:print": "node src/index.js --print-only",
-    "test": "node --experimental-vm-modules ../../../node_modules/jest/bin/jest.js",
-    "lint": "../../../node_modules/.bin/eslint src/**/*.js"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
+    "test:ci": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --ci --coverage --watchAll=false",
+    "lint": "./node_modules/.bin/eslint src/**/*.js",
+    "lint:fix": "./node_modules/.bin/eslint src/**/*.js --fix"
   },
   "keywords": [
     "github",

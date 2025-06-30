@@ -45,7 +45,7 @@ export class BigQueryClient {
   }
 
   /**
-   * Creates a table if it doesn't exist
+   * Creates a table if it doesn't exist with table-specific configuration
    * @param {string} datasetId - BigQuery dataset ID
    * @param {string} tableId - BigQuery table ID
    * @param {Object} schema - BigQuery table schema
@@ -73,16 +73,13 @@ export class BigQueryClient {
       if (!tableExists) {
         logger.info(`Table ${tableId} does not exist, creating it`);
 
+        // Get table-specific configuration
+        const tableConfig = this.getTableConfiguration(tableId);
+        
         const options = {
           schema: schema,
-          timePartitioning: {
-            type: 'DAY',
-            field: 'first_review_time'
-          },
-          // Set pr_number as the primary key
-          clustering: {
-            fields: ['pr_creator']
-          }
+          timePartitioning: tableConfig.timePartitioning,
+          clustering: tableConfig.clustering
         };
 
         await table.create(options);
@@ -95,42 +92,117 @@ export class BigQueryClient {
   }
 
   /**
-   * Gets the schema for the PR pickup time metrics table
-   * @returns {Object} BigQuery table schema
+   * Gets table-specific configuration for partitioning and clustering
+   * @param {string} tableId - BigQuery table ID
+   * @returns {Object} Table configuration
    */
-  getTableSchema() {
-    return {
-      fields: [
-        { name: 'review_date', type: 'DATE', mode: 'REQUIRED' },
-        { name: 'pr_creator', type: 'STRING', mode: 'REQUIRED' },
-        { name: 'pr_url', type: 'STRING', mode: 'REQUIRED' },
-        { name: 'pickup_time_seconds', type: 'INTEGER', mode: 'REQUIRED' },
-        { name: 'repository', type: 'STRING', mode: 'REQUIRED' },
-        { name: 'pr_number', type: 'INTEGER', mode: 'REQUIRED' },
-        { name: 'target_branch', type: 'STRING', mode: 'REQUIRED' },
-        { name: 'ready_time', type: 'TIMESTAMP', mode: 'REQUIRED' },
-        { name: 'first_review_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
-      ]
-    };
+  getTableConfiguration(tableId) {
+    switch (tableId) {
+      case 'first_review':
+        return {
+          timePartitioning: {
+            type: 'DAY',
+            field: 'first_review_time'
+          },
+          clustering: {
+            fields: ['pr_creator']
+          }
+        };
+      
+      case 'pr_merge':
+        return {
+          timePartitioning: {
+            type: 'DAY',
+            field: 'merge_time'
+          },
+          clustering: {
+            fields: ['pr_creator']
+          }
+        };
+      
+      default:
+        throw new Error(`Unknown table configuration for: ${tableId}`);
+    }
   }
 
   /**
-   * Transforms PR pickup time metrics to BigQuery row format
-   * @param {Object} metrics - PR pickup time metrics
+   * Gets the BigQuery table schema for a specific table
+   * @param {string} tableName - Name of the table
+   * @returns {Object} BigQuery table schema
+   */
+  getTableSchema(tableName) {
+    switch (tableName) {
+      case 'first_review':
+        return {
+          fields: [
+            { name: 'review_date', type: 'DATE', mode: 'REQUIRED' },
+            { name: 'pr_creator', type: 'STRING', mode: 'REQUIRED' },
+            { name: 'pr_url', type: 'STRING', mode: 'REQUIRED' },
+            { name: 'pickup_time_seconds', type: 'INTEGER', mode: 'REQUIRED' },
+            { name: 'repository', type: 'STRING', mode: 'REQUIRED' },
+            { name: 'pr_number', type: 'INTEGER', mode: 'REQUIRED' },
+            { name: 'target_branch', type: 'STRING', mode: 'REQUIRED' },
+            { name: 'ready_time', type: 'TIMESTAMP', mode: 'REQUIRED' },
+            { name: 'first_review_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
+          ]
+        };
+      
+      case 'pr_merge':
+        return {
+          fields: [
+            { name: 'merge_date', type: 'DATE', mode: 'REQUIRED' },
+            { name: 'pr_creator', type: 'STRING', mode: 'REQUIRED' },
+            { name: 'pr_url', type: 'STRING', mode: 'REQUIRED' },
+            { name: 'merge_time_seconds', type: 'INTEGER', mode: 'REQUIRED' },
+            { name: 'repository', type: 'STRING', mode: 'REQUIRED' },
+            { name: 'pr_number', type: 'INTEGER', mode: 'REQUIRED' },
+            { name: 'target_branch', type: 'STRING', mode: 'REQUIRED' },
+            { name: 'ready_time', type: 'TIMESTAMP', mode: 'REQUIRED' },
+            { name: 'merge_time', type: 'TIMESTAMP', mode: 'REQUIRED' }
+          ]
+        };
+      
+      default:
+        throw new Error(`Unknown table: ${tableName}`);
+    }
+  }
+
+  /**
+   * Transforms metrics to BigQuery row format based on metric type
+   * @param {Object} metrics - Metrics object
    * @returns {Object} BigQuery row
    */
   transformMetricsToRow(metrics) {
-    return {
-      review_date: metrics.reviewDate,
-      pr_creator: metrics.prCreator,
-      pr_url: metrics.prUrl,
-      pickup_time_seconds: metrics.pickupTimeSeconds,
-      repository: metrics.repository,
-      pr_number: metrics.prNumber,
-      target_branch: metrics.targetBranch,
-      ready_time: metrics.readyTime.toISOString(),
-      first_review_time: metrics.firstReviewTime.toISOString()
-    };
+    switch (metrics.metricType) {
+      case 'time_to_first_review':
+        return {
+          review_date: metrics.reviewDate,
+          pr_creator: metrics.prCreator,
+          pr_url: metrics.prUrl,
+          pickup_time_seconds: metrics.pickupTimeSeconds,
+          repository: metrics.repository,
+          pr_number: metrics.prNumber,
+          target_branch: metrics.targetBranch,
+          ready_time: metrics.readyTime.toISOString(),
+          first_review_time: metrics.firstReviewTime.toISOString()
+        };
+      
+      case 'time_to_merge':
+        return {
+          merge_date: metrics.mergeDate,
+          pr_creator: metrics.prCreator,
+          pr_url: metrics.prUrl,
+          merge_time_seconds: metrics.mergeTimeSeconds,
+          repository: metrics.repository,
+          pr_number: metrics.prNumber,
+          target_branch: metrics.targetBranch,
+          ready_time: metrics.readyTime.toISOString(),
+          merge_time: metrics.mergeTime.toISOString()
+        };
+      
+      default:
+        throw new Error(`Unknown metric type: ${metrics.metricType}`);
+    }
   }
 
   /**
@@ -190,7 +262,7 @@ export class BigQueryClient {
    * Uploads metrics to BigQuery
    * @param {string} datasetId - BigQuery dataset ID
    * @param {string} tableId - BigQuery table ID
-   * @param {Array} metrics - Array of PR pickup time metrics
+   * @param {Array} metrics - Array of metrics
    */
   async uploadMetrics(datasetId, tableId, metrics) {
     try {
@@ -199,10 +271,11 @@ export class BigQueryClient {
         return;
       }
 
-      logger.info(`Uploading ${metrics.length} metrics to BigQuery`);
+      logger.info(`Uploading ${metrics.length} metrics to BigQuery table ${tableId}`);
 
       // Ensure the table exists with the correct schema
-      await this.createTableIfNotExists(datasetId, tableId, this.getTableSchema());
+      const schema = this.getTableSchema(tableId);
+      await this.createTableIfNotExists(datasetId, tableId, schema);
 
       // Get all PR numbers from the metrics
       const prNumbers = metrics.map(metric => metric.prNumber);

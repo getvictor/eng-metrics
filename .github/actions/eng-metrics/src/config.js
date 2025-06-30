@@ -21,15 +21,26 @@ const DEFAULT_CONFIG = {
   // Default target branch to track PRs for
   targetBranch: 'main',
 
-  // Default BigQuery dataset and table IDs
+  // Default BigQuery dataset ID
   bigQueryDatasetId: 'github_metrics',
-  bigQueryTableId: 'first_review',
 
   // Default time window for fetching PRs (in days)
   lookbackDays: 5,
 
   // Default print-only mode (false = upload to BigQuery, true = print to console)
-  printOnly: false
+  printOnly: false,
+
+  // Multi-table configuration
+  metrics: {
+    timeToFirstReview: {
+      enabled: true,
+      tableName: 'first_review'
+    },
+    timeToMerge: {
+      enabled: true,
+      tableName: 'pr_merge'
+    }
+  }
 };
 
 /**
@@ -72,10 +83,24 @@ const loadConfigFromEnv = () => {
   if (process.env.GITHUB_TOKEN) config.githubToken = process.env.GITHUB_TOKEN;
   if (process.env.BIGQUERY_PROJECT_ID) config.bigQueryProjectId = process.env.BIGQUERY_PROJECT_ID;
   if (process.env.BIGQUERY_DATASET_ID) config.bigQueryDatasetId = process.env.BIGQUERY_DATASET_ID;
-  if (process.env.BIGQUERY_TABLE_ID) config.bigQueryTableId = process.env.BIGQUERY_TABLE_ID;
   if (process.env.SERVICE_ACCOUNT_KEY_PATH) config.serviceAccountKeyPath = process.env.SERVICE_ACCOUNT_KEY_PATH;
   if (process.env.TARGET_BRANCH) config.targetBranch = process.env.TARGET_BRANCH;
   if (process.env.PRINT_ONLY) config.printOnly = process.env.PRINT_ONLY === 'true';
+
+  // Handle metrics configuration from environment variables
+  if (process.env.ENABLED_METRICS) {
+    const enabledMetrics = process.env.ENABLED_METRICS.split(',').map(metric => metric.trim());
+    config.metrics = {
+      timeToFirstReview: {
+        enabled: enabledMetrics.includes('time_to_first_review'),
+        tableName: process.env.TIME_TO_FIRST_REVIEW_TABLE || 'first_review'
+      },
+      timeToMerge: {
+        enabled: enabledMetrics.includes('time_to_merge'),
+        tableName: process.env.TIME_TO_MERGE_TABLE || 'pr_merge'
+      }
+    };
+  }
 
   return config;
 };
@@ -120,6 +145,29 @@ const validateConfig = (config) => {
     return false;
   }
 
+  // Validate metrics configuration
+  if (!config.metrics || typeof config.metrics !== 'object') {
+    logger.error('Configuration must include metrics configuration');
+    return false;
+  }
+
+  // Validate that at least one metric is enabled
+  const enabledMetrics = Object.values(config.metrics).filter(metric => metric.enabled);
+  if (enabledMetrics.length === 0) {
+    logger.error('At least one metric must be enabled');
+    return false;
+  }
+
+  // Validate metric configurations
+  for (const [metricName, metricConfig] of Object.entries(config.metrics)) {
+    if (metricConfig.enabled) {
+      if (!metricConfig.tableName || typeof metricConfig.tableName !== 'string') {
+        logger.error(`Metric ${metricName} must have a valid tableName`);
+        return false;
+      }
+    }
+  }
+
   return true;
 };
 
@@ -160,14 +208,18 @@ export const loadConfig = (configPath = 'config.json') => {
     repositories: config.repositories,
     targetBranch: config.targetBranch,
     printOnly: config.printOnly,
+    metrics: Object.fromEntries(
+      Object.entries(config.metrics).map(([key, value]) => [key, { enabled: value.enabled, tableName: value.tableName }])
+    ),
     ...(config.printOnly ? {} : {
-      bigQueryDatasetId: config.bigQueryDatasetId,
-      bigQueryTableId: config.bigQueryTableId
+      bigQueryDatasetId: config.bigQueryDatasetId
     })
   });
 
   return config;
 };
+
+export { validateConfig };
 
 export default {
   loadConfig

@@ -15,6 +15,9 @@ export class GitHubClient {
    * @param {string} token - GitHub API token
    */
   constructor(token) {
+    if (!token) {
+      throw new Error('GitHub token is required');
+    }
     this.octokit = null;
     this.initialize(token);
   }
@@ -47,12 +50,12 @@ export class GitHubClient {
   async fetchPullRequests(owner, repo, state = 'all', since, targetBranch = 'main') {
     try {
       logger.info(`Fetching ${state} PRs for ${owner}/${repo} since ${since.toISOString()}`);
-      
+
       // GitHub API returns paginated results, so we need to fetch all pages
       const pullRequests = [];
       let page = 1;
       let hasMorePages = true;
-      
+
       while (hasMorePages) {
         const response = await this.octokit.rest.pulls.list({
           owner,
@@ -63,43 +66,43 @@ export class GitHubClient {
           per_page: 100,
           page
         });
-        
+
         // Filter PRs by update date and target branch
         const filteredPRs = response.data.filter(pr => {
           const prUpdatedAt = new Date(pr.updated_at);
           return prUpdatedAt >= since && pr.base.ref === targetBranch;
         });
-        
+
         if (filteredPRs.length > 0) {
           pullRequests.push(...filteredPRs);
           page++;
         } else {
           hasMorePages = false;
         }
-        
+
         // If we got fewer results than the page size, there are no more pages
         if (response.data.length < 100) {
           hasMorePages = false;
         }
       }
-      
+
       logger.info(`Fetched ${pullRequests.length} PRs for ${owner}/${repo}`);
       return pullRequests;
     } catch (err) {
       logger.error(`Error fetching PRs for ${owner}/${repo}`, err);
-      
+
       // Implement basic retry for rate limiting
       if (err.status === 403 && err.response?.headers?.['x-ratelimit-remaining'] === '0') {
         const resetTime = parseInt(err.response.headers['x-ratelimit-reset'], 10) * 1000;
         const waitTime = resetTime - Date.now();
-        
+
         if (waitTime > 0 && waitTime < 3600000) { // Only retry if wait time is less than 1 hour
           logger.info(`Rate limit exceeded. Retrying in ${Math.ceil(waitTime / 1000)} seconds`);
           await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
           return this.fetchPullRequests(owner, repo, state, since, targetBranch);
         }
       }
-      
+
       throw err;
     }
   }
@@ -114,30 +117,30 @@ export class GitHubClient {
   async fetchPRReviewEvents(owner, repo, prNumber) {
     try {
       logger.info(`Fetching review events for ${owner}/${repo}#${prNumber}`);
-      
+
       const response = await this.octokit.rest.pulls.listReviews({
         owner,
         repo,
         pull_number: prNumber
       });
-      
+
       logger.info(`Fetched ${response.data.length} review events for ${owner}/${repo}#${prNumber}`);
       return response.data;
     } catch (err) {
       logger.error(`Error fetching review events for ${owner}/${repo}#${prNumber}`, err);
-      
+
       // Implement basic retry for rate limiting
       if (err.status === 403 && err.response?.headers?.['x-ratelimit-remaining'] === '0') {
         const resetTime = parseInt(err.response.headers['x-ratelimit-reset'], 10) * 1000;
         const waitTime = resetTime - Date.now();
-        
+
         if (waitTime > 0 && waitTime < 3600000) { // Only retry if wait time is less than 1 hour
           logger.info(`Rate limit exceeded. Retrying in ${Math.ceil(waitTime / 1000)} seconds`);
           await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
           return this.fetchPRReviewEvents(owner, repo, prNumber);
         }
       }
-      
+
       throw err;
     }
   }
@@ -152,12 +155,12 @@ export class GitHubClient {
   async fetchPRTimelineEvents(owner, repo, prNumber) {
     try {
       logger.info(`Fetching timeline events for ${owner}/${repo}#${prNumber}`);
-      
+
       // GitHub API returns paginated results, so we need to fetch all pages
       const timelineEvents = [];
       let page = 1;
       let hasMorePages = true;
-      
+
       while (hasMorePages) {
         const response = await this.octokit.rest.issues.listEventsForTimeline({
           owner,
@@ -166,37 +169,37 @@ export class GitHubClient {
           per_page: 100,
           page
         });
-        
+
         if (response.data.length > 0) {
           timelineEvents.push(...response.data);
           page++;
         } else {
           hasMorePages = false;
         }
-        
+
         // If we got fewer results than the page size, there are no more pages
         if (response.data.length < 100) {
           hasMorePages = false;
         }
       }
-      
+
       logger.info(`Fetched ${timelineEvents.length} timeline events for ${owner}/${repo}#${prNumber}`);
       return timelineEvents;
     } catch (err) {
       logger.error(`Error fetching timeline events for ${owner}/${repo}#${prNumber}`, err);
-      
+
       // Implement basic retry for rate limiting
       if (err.status === 403 && err.response?.headers?.['x-ratelimit-remaining'] === '0') {
         const resetTime = parseInt(err.response.headers['x-ratelimit-reset'], 10) * 1000;
         const waitTime = resetTime - Date.now();
-        
+
         if (waitTime > 0 && waitTime < 3600000) { // Only retry if wait time is less than 1 hour
           logger.info(`Rate limit exceeded. Retrying in ${Math.ceil(waitTime / 1000)} seconds`);
           await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
           return this.fetchPRTimelineEvents(owner, repo, prNumber);
         }
       }
-      
+
       throw err;
     }
   }
@@ -217,7 +220,7 @@ export class GitHubClient {
         time: new Date(event.created_at),
         event
       }));
-      
+
       // Add PR creation time as a ready event if PR was not created as draft
       if (!pr.draft) {
         readyForReviewEvents.push({
@@ -225,46 +228,46 @@ export class GitHubClient {
           event: { event: 'created_not_draft', created_at: pr.created_at }
         });
       }
-      
+
       // Sort ready events by time (ascending)
       readyForReviewEvents.sort((a, b) => a.time - b.time);
-      
+
       // If we couldn't find any ready events, return null
       if (readyForReviewEvents.length === 0) {
         logger.warn(`No ready_for_review events found for ${pr.html_url}`);
         return null;
       }
-      
+
       // Find the first review submission
       if (reviewEvents.length === 0) {
         logger.warn(`No review events found for ${pr.html_url}`);
         return null;
       }
-      
+
       // Sort review events by submitted_at (ascending)
       const sortedReviewEvents = [...reviewEvents].sort((a, b) =>
         new Date(a.submitted_at) - new Date(b.submitted_at)
       );
-      
+
       const firstReview = sortedReviewEvents[0];
       const firstReviewTime = new Date(firstReview.submitted_at);
-      
+
       // Find the most recent ready event that occurred before the first review
       const relevantReadyEvent = readyForReviewEvents
         .filter(readyEvent => readyEvent.time < firstReviewTime)
         .pop();
-      
+
       // If no ready event occurred before the first review, return null
       if (!relevantReadyEvent) {
         logger.warn(`No ready_for_review event found before first review for ${pr.html_url}`);
         return null;
       }
-      
+
       const readyTime = relevantReadyEvent.time;
-      
+
       // Calculate pickup time excluding weekends
       const pickupTimeSeconds = this.calculatePickupTimeExcludingWeekends(readyTime, firstReviewTime);
-      
+
       // If pickup time is negative, something went wrong
       if (pickupTimeSeconds < 0) {
         logger.warn(`Negative pickup time for ${pr.html_url}`, {
@@ -274,21 +277,21 @@ export class GitHubClient {
         });
         return null;
       }
-      
+
       // Log which ready event was used
       const readyEventType = relevantReadyEvent.event.event === 'created_not_draft'
         ? 'PR creation (not draft)'
         : 'ready_for_review event';
-      
+
       logger.info(`Calculated pickup time for ${pr.html_url}`, {
         pickupTimeSeconds,
         readyEventType,
         readyTime: readyTime.toISOString(),
         firstReviewTime: firstReviewTime.toISOString()
       });
-      
+
       // We already have readyEventType defined above, so we can use it here
-      
+
       return {
         repository: `${pr.base.repo.owner.login}/${pr.base.repo.name}`,
         prNumber: pr.number,
@@ -320,7 +323,7 @@ export class GitHubClient {
     // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
     const readyDay = readyTime.getUTCDay();
     const reviewDay = reviewTime.getUTCDay();
-    
+
     // Case: Both ready time and review time are on the same weekend
     if ((readyDay === 0 || readyDay === 6) && (reviewDay === 0 || reviewDay === 6) &&
         Math.floor(reviewTime / (24 * 60 * 60 * 1000)) - Math.floor(readyTime / (24 * 60 * 60 * 1000)) <= 2) {
@@ -350,6 +353,103 @@ export class GitHubClient {
 
     // Ensure we don't return negative values
     return Math.max(0, Math.floor(diffMs / 1000));
+  }
+
+  /**
+   * Calculate time to merge metrics
+   * @param {Object} pr - Pull request object
+   * @param {Array} timelineEvents - Timeline events
+   * @returns {Object|null} Time to merge metrics or null if not applicable
+   */
+  calculateTimeToMerge(pr, timelineEvents) {
+    try {
+      // Only process merged PRs
+      if (!pr.merged_at) {
+        return null;
+      }
+
+      // Find all ready_for_review events
+      const readyForReviewEvents = timelineEvents.filter(event =>
+        event.event === 'ready_for_review'
+      ).map(event => ({
+        time: new Date(event.created_at),
+        event
+      }));
+
+      // Add PR creation time as a ready event if PR was not created as draft
+      if (!pr.draft) {
+        readyForReviewEvents.push({
+          time: new Date(pr.created_at),
+          event: { event: 'created_not_draft', created_at: pr.created_at }
+        });
+      }
+
+      // Sort ready events by time (ascending)
+      readyForReviewEvents.sort((a, b) => a.time - b.time);
+
+      // If we couldn't find any ready events, return null
+      if (readyForReviewEvents.length === 0) {
+        logger.warn(`No ready_for_review events found for ${pr.html_url}`);
+        return null;
+      }
+
+      const mergeTime = new Date(pr.merged_at);
+
+      // Find the most recent ready event that occurred before the merge
+      const relevantReadyEvent = readyForReviewEvents
+        .filter(readyEvent => readyEvent.time < mergeTime)
+        .pop();
+
+      // If no ready event occurred before the merge, return null
+      if (!relevantReadyEvent) {
+        logger.warn(`No ready_for_review event found before merge for ${pr.html_url}`);
+        return null;
+      }
+
+      const readyTime = relevantReadyEvent.time;
+
+      // Calculate merge time excluding weekends
+      const mergeTimeSeconds = this.calculatePickupTimeExcludingWeekends(readyTime, mergeTime);
+
+      // If merge time is negative, something went wrong
+      if (mergeTimeSeconds < 0) {
+        logger.warn(`Negative merge time for ${pr.html_url}`, {
+          readyTime,
+          mergeTime,
+          mergeTimeSeconds
+        });
+        return null;
+      }
+
+      // Log which ready event was used
+      const readyEventType = relevantReadyEvent.event.event === 'created_not_draft'
+        ? 'PR creation (not draft)'
+        : 'ready_for_review event';
+
+      logger.info(`Calculated merge time for ${pr.html_url}`, {
+        mergeTimeSeconds,
+        readyEventType,
+        readyTime: readyTime.toISOString(),
+        mergeTime: mergeTime.toISOString()
+      });
+
+      return {
+        metricType: 'time_to_merge',
+        repository: `${pr.base.repo.owner.login}/${pr.base.repo.name}`,
+        prNumber: pr.number,
+        prUrl: pr.html_url,
+        prCreator: pr.user.login,
+        targetBranch: pr.base.ref,
+        readyTime,
+        mergeTime,
+        mergeDate: mergeTime.toISOString().split('T')[0], // YYYY-MM-DD
+        mergeTimeSeconds,
+        readyEventType
+      };
+    } catch (err) {
+      logger.error(`Error calculating merge time for ${pr.html_url}`, err);
+      return null;
+    }
   }
 }
 

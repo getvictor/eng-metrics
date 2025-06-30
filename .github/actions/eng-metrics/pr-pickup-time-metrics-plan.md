@@ -207,7 +207,7 @@ pickup-time/
 │   └── logger.js             # Logging module
 ├── test/
 │   ├── config.test.js
-│   ├── github-client.test.js
+│   ├── github-client-general.test.js
 │   ├── bigquery-client.test.js
 │   └── metrics-collector.test.js
 ├── config.json               # Sample configuration
