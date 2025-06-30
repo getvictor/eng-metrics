@@ -4,8 +4,17 @@
   ],
   "targetBranch": "main",
   "bigQueryDatasetId": "github_metrics",
-  "bigQueryTableId": "first_review",
   "lookbackDays": 5,
   "serviceAccountKeyPath": "./service-account-key.json",
-  "printOnly": false
+  "printOnly": false,
+  "metrics": {
+    "timeToFirstReview": {
+      "enabled": true,
+      "tableName": "first_review"
+    },
+    "timeToMerge": {
+      "enabled": true,
+      "tableName": "pr_merge"
+    }
+  }
 }
