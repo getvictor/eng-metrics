@@ -1,6 +1,10 @@
 /**
- * Metrics collector module for PR pickup time metrics
- * Orchestrates the entire process of collecting and uploading metrics
+ * Engineering metrics collector module
+ * Orchestrates the collection and uploading of comprehensive GitHub engineering metrics:
+ * - Time to First Review (currently implemented)
+ * - Time to Merge (planned)
+ * - Time to QA Ready (planned)
+ * - Time to Production Ready (planned)
  */
 
 import GitHubClient from './github-client.js';
@@ -48,7 +52,7 @@ export class MetricsCollector {
   /**
    * Collects metrics for a single repository
    * @param {string} repository - Repository in the format owner/repo
-   * @returns {Array} Array of PR pickup time metrics
+   * @returns {Array} Array of engineering metrics
    */
   async collectRepositoryMetrics(repository) {
     const [owner, repo] = repository.split('/');
@@ -119,7 +123,7 @@ export class MetricsCollector {
 
   /**
    * Collects metrics for all repositories
-   * @returns {Array} Array of PR pickup time metrics
+   * @returns {Array} Array of engineering metrics
    */
   async collectMetrics() {
     try {
@@ -142,12 +146,8 @@ export class MetricsCollector {
   }
 
   /**
-   * Uploads metrics to BigQuery
-   * @param {Array} metrics - Array of PR pickup time metrics
-   */
-  /**
    * Prints metrics to the console in a readable format
-   * @param {Array} metrics - Array of PR pickup time metrics
+   * @param {Array} metrics - Array of engineering metrics
    */
   printMetrics(metrics) {
     try {
@@ -159,7 +159,7 @@ export class MetricsCollector {
       logger.info(`Printing ${metrics.length} metrics to console`);
       
       // Print metrics in a table format
-      console.log('\n=== PR Pickup Time Metrics ===\n');
+      console.log('\n=== Engineering Metrics ===\n');
       
       // Sort metrics by pickup time (descending)
       const sortedMetrics = [...metrics].sort((a, b) => b.pickupTimeSeconds - a.pickupTimeSeconds);
@@ -200,7 +200,7 @@ export class MetricsCollector {
 
   /**
    * Uploads metrics to BigQuery
-   * @param {Array} metrics - Array of PR pickup time metrics
+   * @param {Array} metrics - Array of engineering metrics
    */
   async uploadMetrics(metrics) {
     try {
@@ -229,7 +229,7 @@ export class MetricsCollector {
    */
   async run() {
     try {
-      logger.info('Starting PR pickup time metrics collection');
+      logger.info('Starting engineering metrics collection');
       
       // Initialize the metrics collector
       await this.initialize();
@@ -245,10 +245,10 @@ export class MetricsCollector {
         await this.uploadMetrics(metrics);
       }
       
-      logger.info('PR pickup time metrics collection completed successfully');
+      logger.info('Engineering metrics collection completed successfully');
       return metrics;
     } catch (err) {
-      logger.error('Error running PR pickup time metrics collection', err);
+      logger.error('Error running engineering metrics collection', err);
       throw err;
     }
   }

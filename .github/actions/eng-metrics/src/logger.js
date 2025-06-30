@@ -1,5 +1,5 @@
 /**
- * Logger module for PR pickup time metrics collector
+ * Logger module for engineering metrics collector
  * Provides structured JSON logging
  */
 

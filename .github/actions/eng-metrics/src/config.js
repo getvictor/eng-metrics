@@ -1,5 +1,5 @@
 /**
- * Configuration module for PR pickup time metrics collector
+ * Configuration module for engineering metrics collector
  * Loads and validates configuration from files and environment variables
  */
 

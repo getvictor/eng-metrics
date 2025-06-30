@@ -1,5 +1,5 @@
 /**
- * GitHub client module for PR pickup time metrics collector
+ * GitHub client module for engineering metrics collector
  * Handles interactions with the GitHub API using Octokit.js
  */
 

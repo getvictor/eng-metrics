@@ -2,6 +2,11 @@
 
 /**
  * Main entry point for engineering metrics collector
+ * Collects comprehensive GitHub engineering metrics including:
+ * - Time to First Review (currently implemented)
+ * - Time to Merge (planned)
+ * - Time to QA Ready (planned)
+ * - Time to Production Ready (planned)
  */
 
 import { loadConfig } from './config.js';

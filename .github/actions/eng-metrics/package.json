@@ -1,7 +1,7 @@
 {
-  "name": "pickup-time",
+  "name": "engineering-metrics-collector",
   "version": "1.0.0",
-  "description": "GitHub PR pickup time metrics collector",
+  "description": "Comprehensive GitHub engineering metrics collector - tracks time to first review, time to merge, and GitHub Projects workflow metrics",
   "type": "module",
   "main": "src/index.js",
   "directories": {
@@ -15,10 +15,14 @@
   },
   "keywords": [
     "github",
-    "metrics",
-    "pr",
-    "pickup-time",
-    "bigquery"
+    "engineering-metrics",
+    "developer-productivity",
+    "time-to-first-review",
+    "time-to-merge",
+    "github-projects",
+    "workflow-metrics",
+    "bigquery",
+    "analytics"
   ],
   "author": "",
   "license": "ISC",
