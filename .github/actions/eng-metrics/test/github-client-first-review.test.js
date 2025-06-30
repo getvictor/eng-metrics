@@ -60,6 +60,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-10T11:30:00Z' }
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 123,
           prUrl: 'https://github.com/owner/repo/pull/123',
@@ -98,6 +99,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-11T11:00:00Z' }
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 124,
           prUrl: 'https://github.com/owner/repo/pull/124',
@@ -144,6 +146,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-12T13:00:00Z' }
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 125,
           prUrl: 'https://github.com/owner/repo/pull/125',
@@ -186,6 +189,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-16T11:00:00Z' }
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 126,
           prUrl: 'https://github.com/owner/repo/pull/126',
@@ -263,6 +267,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-16T12:00:00Z' }  // Third review - should be ignored
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 129,
           prUrl: 'https://github.com/owner/repo/pull/129',
@@ -296,6 +301,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-06-11T14:00:00Z' } // Sunday, 3 weeks later
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 136,
           prUrl: 'https://github.com/owner/repo/pull/136',
@@ -329,6 +335,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-22T10:00:00Z' } // Monday
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 134,
           prUrl: 'https://github.com/owner/repo/pull/134',
@@ -362,6 +369,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-27T14:00:00Z' } // Saturday
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 135,
           prUrl: 'https://github.com/owner/repo/pull/135',
@@ -395,6 +403,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-22T10:00:00Z' } // Monday
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 130,
           prUrl: 'https://github.com/owner/repo/pull/130',
@@ -428,6 +437,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-22T10:00:00Z' } // Monday
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 131,
           prUrl: 'https://github.com/owner/repo/pull/131',
@@ -461,6 +471,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-21T14:00:00Z' } // Sunday
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 132,
           prUrl: 'https://github.com/owner/repo/pull/132',
@@ -494,6 +505,7 @@ describe('GitHubClient - Time to first review (pickup time)', () => {
           { submitted_at: '2023-05-29T14:00:00Z' } // Monday, 12 days later
         ],
         expected: {
+          metricType: 'time_to_first_review',
           repository: 'owner/repo',
           prNumber: 133,
           prUrl: 'https://github.com/owner/repo/pull/133',

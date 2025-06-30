@@ -138,9 +138,6 @@ npm start -- --print-only
 # Run with a custom config file in print-only mode
 npm start -- path/to/config.json --print-only
 
-# Using the dedicated print-only script
-npm run start:print
-
 # Using the test script
 ./test-print-only.sh
 ```

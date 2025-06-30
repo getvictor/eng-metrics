@@ -293,6 +293,7 @@ export class GitHubClient {
       // We already have readyEventType defined above, so we can use it here
 
       return {
+        metricType: 'time_to_first_review',
         repository: `${pr.base.repo.owner.login}/${pr.base.repo.name}`,
         prNumber: pr.number,
         prUrl: pr.html_url,
