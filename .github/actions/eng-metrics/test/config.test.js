@@ -3,15 +3,46 @@
  */
 
 import { jest } from '@jest/globals';
-import { loadConfig, validateConfig } from '../src/config.js';
 
 // Mock the logger
-jest.mock('../src/logger.js', () => ({
+const mockLogger = {
+  default: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn()
+  },
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
   debug: jest.fn()
-}));
+};
+
+// Mock fs
+const mockFs = {
+  default: {
+    existsSync: jest.fn(),
+    readFileSync: jest.fn()
+  },
+  existsSync: jest.fn(),
+  readFileSync: jest.fn()
+};
+
+// Mock dotenv
+const mockDotenv = {
+  default: {
+    config: jest.fn()
+  },
+  config: jest.fn()
+};
+
+// Mock modules before importing
+jest.unstable_mockModule('../src/logger.js', () => mockLogger);
+jest.unstable_mockModule('fs', () => mockFs);
+jest.unstable_mockModule('dotenv', () => mockDotenv);
+
+// Now import the module under test
+const { loadConfig, validateConfig } = await import('../src/config.js');
 
 describe('Config', () => {
   let originalEnv;
@@ -24,6 +55,7 @@ describe('Config', () => {
     delete process.env.GITHUB_TOKEN;
     delete process.env.SERVICE_ACCOUNT_KEY_PATH;
     delete process.env.BIGQUERY_DATASET_ID;
+    delete process.env.BIGQUERY_PROJECT_ID;
     delete process.env.REPOSITORIES;
     delete process.env.LOOKBACK_DAYS;
     delete process.env.TARGET_BRANCH;
@@ -31,6 +63,22 @@ describe('Config', () => {
     delete process.env.ENABLED_METRICS;
     delete process.env.TIME_TO_FIRST_REVIEW_TABLE;
     delete process.env.TIME_TO_MERGE_TABLE;
+
+    // Reset all mocks
+    jest.clearAllMocks();
+    
+    // Mock fs.existsSync to return true for config.json
+    mockFs.existsSync.mockReturnValue(true);
+    
+    // Mock fs.readFileSync to return a default config
+    mockFs.readFileSync.mockReturnValue(JSON.stringify({
+      repositories: ['owner/repo1', 'owner/repo2'],
+      targetBranch: 'main',
+      bigQueryDatasetId: 'test_dataset',
+      lookbackDays: 5,
+      serviceAccountKeyPath: './service-account-key.json',
+      printOnly: false
+    }));
   });
 
   afterEach(() => {
@@ -43,6 +91,7 @@ describe('Config', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
+      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = 'owner/repo1,owner/repo2';
 
       const config = loadConfig();
@@ -51,8 +100,7 @@ describe('Config', () => {
         githubToken: 'test-token',
         serviceAccountKeyPath: '/path/to/key.json',
         bigQueryDatasetId: 'test_dataset',
-        bigQueryProjectId: 'engineering-metrics-459517',
-        bigQueryTableId: 'first_review',
+        bigQueryProjectId: 'test-project',
         repositories: ['owner/repo1', 'owner/repo2'],
         lookbackDays: 5,
         targetBranch: 'main',
@@ -88,8 +136,6 @@ describe('Config', () => {
         githubToken: 'test-token',
         serviceAccountKeyPath: '/path/to/key.json',
         bigQueryDatasetId: 'test_dataset',
-        bigQueryProjectId: 'engineering-metrics-459517',
-        bigQueryTableId: 'first_review',
         repositories: ['owner/repo'],
         lookbackDays: 5,
         targetBranch: 'develop',
@@ -111,32 +157,51 @@ describe('Config', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
+      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = 'owner/repo';
       process.env.ENABLED_METRICS = 'time_to_first_review,time_to_merge';
 
       const config = loadConfig();
 
-      expect(config.metrics.timeToFirstReview.enabled).toBe(true);
-      expect(config.metrics.timeToMerge.enabled).toBe(true);
+      expect(config.metrics).toEqual({
+        timeToFirstReview: {
+          enabled: true,
+          tableName: 'first_review'
+        },
+        timeToMerge: {
+          enabled: true,
+          tableName: 'pr_merge'
+        }
+      });
     });
 
     test('should handle only time_to_merge enabled', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
+      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = 'owner/repo';
       process.env.ENABLED_METRICS = 'time_to_merge';
 
       const config = loadConfig();
 
-      expect(config.metrics.timeToFirstReview.enabled).toBe(false);
-      expect(config.metrics.timeToMerge.enabled).toBe(true);
+      expect(config.metrics).toEqual({
+        timeToFirstReview: {
+          enabled: false,
+          tableName: 'first_review'
+        },
+        timeToMerge: {
+          enabled: true,
+          tableName: 'pr_merge'
+        }
+      });
     });
 
     test('should trim whitespace from repositories', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
+      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = ' owner/repo1 , owner/repo2 , owner/repo3 ';
 
       const config = loadConfig();
@@ -148,13 +213,22 @@ describe('Config', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
+      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = 'owner/repo';
       process.env.ENABLED_METRICS = ' time_to_first_review , time_to_merge ';
 
       const config = loadConfig();
 
-      expect(config.metrics.timeToFirstReview.enabled).toBe(true);
-      expect(config.metrics.timeToMerge.enabled).toBe(true);
+      expect(config.metrics).toEqual({
+        timeToFirstReview: {
+          enabled: true,
+          tableName: 'first_review'
+        },
+        timeToMerge: {
+          enabled: true,
+          tableName: 'pr_merge'
+        }
+      });
     });
   });
 
@@ -181,7 +255,7 @@ describe('Config', () => {
     };
 
     test('should validate correct configuration', () => {
-      expect(() => validateConfig(baseValidConfig)).not.toThrow();
+      expect(validateConfig(baseValidConfig)).toBe(true);
     });
 
     test('should return false for missing GitHub token', () => {
@@ -195,12 +269,8 @@ describe('Config', () => {
     });
 
     test('should not require service account key path in print-only mode', () => {
-      const config = { 
-        ...baseValidConfig, 
-        serviceAccountKeyPath: '', 
-        printOnly: true 
-      };
-      expect(() => validateConfig(config)).not.toThrow();
+      const config = { ...baseValidConfig, serviceAccountKeyPath: '', printOnly: true };
+      expect(validateConfig(config)).toBe(true);
     });
 
     test('should return false for missing BigQuery project ID in non-print mode', () => {
@@ -209,12 +279,8 @@ describe('Config', () => {
     });
 
     test('should not require BigQuery dataset ID in print-only mode', () => {
-      const config = { 
-        ...baseValidConfig, 
-        bigQueryDatasetId: '', 
-        printOnly: true 
-      };
-      expect(() => validateConfig(config)).not.toThrow();
+      const config = { ...baseValidConfig, bigQueryDatasetId: '', printOnly: true };
+      expect(validateConfig(config)).toBe(true);
     });
 
     test('should return false for empty repositories array', () => {
@@ -258,11 +324,11 @@ describe('Config', () => {
       const config = {
         ...baseValidConfig,
         metrics: {
-          timeToFirstReview: { enabled: true, tableName: 'first_review' },
-          timeToMerge: { enabled: false, tableName: '' }
+          timeToFirstReview: { enabled: false, tableName: '' },
+          timeToMerge: { enabled: true, tableName: 'pr_merge' }
         }
       };
-      expect(() => validateConfig(config)).not.toThrow();
+      expect(validateConfig(config)).toBe(true);
     });
 
     test('should validate multiple valid repositories', () => {
@@ -270,13 +336,13 @@ describe('Config', () => {
         ...baseValidConfig, 
         repositories: ['owner1/repo1', 'owner2/repo2', 'owner3/repo3'] 
       };
-      expect(() => validateConfig(config)).not.toThrow();
+      expect(validateConfig(config)).toBe(true);
     });
 
     test('should throw error for mixed valid and invalid repositories', () => {
-      const config = {
-        ...baseValidConfig,
-        repositories: ['owner1/repo1', 'invalid-repo', 'owner3/repo3']
+      const config = { 
+        ...baseValidConfig, 
+        repositories: ['owner1/repo1', 'invalid-repo', 'owner3/repo3'] 
       };
       expect(validateConfig(config)).toBe(false);
     });
