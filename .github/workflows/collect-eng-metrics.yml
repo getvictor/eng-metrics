@@ -38,5 +38,4 @@ jobs:
         uses: ./.github/actions/eng-metrics
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BIGQUERY_PROJECT_ID: ${{ secrets.BIGQUERY_PROJECT_ID }}
           SERVICE_ACCOUNT_KEY_PATH: './service-account-key.json'
