@@ -7,6 +7,8 @@
   "lookbackDays": 5,
   "serviceAccountKeyPath": "./service-account-key.json",
   "printOnly": false,
+  "userGroupEnabled": true,
+  "userGroupFilepath": "../../../handbook/company/product-groups.md",
   "metrics": {
     "timeToFirstReview": {
       "enabled": true,

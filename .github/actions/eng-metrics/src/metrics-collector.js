@@ -9,6 +9,9 @@
 
 import GitHubClient from './github-client.js';
 import BigQueryClient from './bigquery-client.js';
+import { UserGroupClient } from './user-group-client.js';
+import { parseProductGroups } from './markdown-parser.js';
+import { filterValidUserGroups } from './github-validator.js';
 import logger from './logger.js';
 
 /**
@@ -23,6 +26,7 @@ export class MetricsCollector {
     this.config = config;
     this.githubClient = null;
     this.bigqueryClient = null;
+    this.userGroupClient = null;
   }
 
   /**
@@ -40,6 +44,29 @@ export class MetricsCollector {
         this.bigqueryClient = new BigQueryClient(this.config.serviceAccountKeyPath);
       } else {
         logger.info('Running in print-only mode, BigQuery client not initialized');
+      }
+
+      // Initialize User Group client if user group processing is enabled
+      if (this.config.userGroupEnabled) {
+        if (!this.config.printOnly) {
+          // Get project ID from BigQuery client
+          const projectId = this.bigqueryClient.getProjectId();
+          this.userGroupClient = new UserGroupClient(
+            projectId,
+            this.config.bigQueryDatasetId,
+            this.config.serviceAccountKeyPath,
+            this.config.printOnly
+          );
+        } else {
+          // For print-only mode, we don't need a real project ID
+          this.userGroupClient = new UserGroupClient(
+            'print-only-project',
+            this.config.bigQueryDatasetId,
+            this.config.serviceAccountKeyPath,
+            this.config.printOnly
+          );
+        }
+        logger.info('User group client initialized');
       }
       
       logger.info('Metrics collector initialized');
@@ -180,6 +207,48 @@ export class MetricsCollector {
       return allMetrics;
     } catch (err) {
       logger.error('Error collecting metrics', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Processes user groups from the markdown file
+   * @returns {Promise<void>}
+   */
+  async processUserGroups() {
+    if (!this.config.userGroupEnabled) {
+      logger.info('User group processing is disabled');
+      return;
+    }
+
+    try {
+      logger.info('Processing user groups');
+      
+      // Parse user groups from markdown file
+      const userGroups = parseProductGroups(this.config.userGroupFilepath);
+      
+      if (userGroups.length === 0) {
+        logger.warn('No user groups found in markdown file');
+        return;
+      }
+
+      // Validate GitHub usernames
+      const validUserGroups = await filterValidUserGroups(
+        this.config.githubToken,
+        userGroups
+      );
+
+      if (validUserGroups.length === 0) {
+        logger.warn('No valid user groups found after validation');
+        return;
+      }
+
+      // Sync user groups to BigQuery
+      await this.userGroupClient.syncUserGroups(validUserGroups);
+      
+      logger.info(`Successfully processed ${validUserGroups.length} user group mappings`);
+    } catch (err) {
+      logger.error('Error processing user groups', err);
       throw err;
     }
   }
@@ -391,6 +460,9 @@ export class MetricsCollector {
       
       // Initialize the metrics collector
       await this.initialize();
+      
+      // Process user groups if enabled
+      await this.processUserGroups();
       
       // Collect metrics
       const metrics = await this.collectMetrics();

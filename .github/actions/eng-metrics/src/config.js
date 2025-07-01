@@ -30,6 +30,10 @@ const DEFAULT_CONFIG = {
   // Default print-only mode (false = upload to BigQuery, true = print to console)
   printOnly: false,
 
+  // User group management configuration
+  userGroupEnabled: false,
+  userGroupFilepath: 'handbook/company/product-groups.md',
+
   // Multi-table configuration
   metrics: {
     timeToFirstReview: {
@@ -85,6 +89,8 @@ const loadConfigFromEnv = () => {
   if (process.env.SERVICE_ACCOUNT_KEY_PATH) config.serviceAccountKeyPath = process.env.SERVICE_ACCOUNT_KEY_PATH;
   if (process.env.TARGET_BRANCH) config.targetBranch = process.env.TARGET_BRANCH;
   if (process.env.PRINT_ONLY) config.printOnly = process.env.PRINT_ONLY === 'true';
+  if (process.env.USER_GROUP_ENABLED) config.userGroupEnabled = process.env.USER_GROUP_ENABLED === 'true';
+  if (process.env.USER_GROUP_FILEPATH) config.userGroupFilepath = process.env.USER_GROUP_FILEPATH;
 
   // Handle metrics configuration from environment variables
   if (process.env.ENABLED_METRICS) {
