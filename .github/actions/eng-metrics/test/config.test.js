@@ -55,7 +55,6 @@ describe('Config', () => {
     delete process.env.GITHUB_TOKEN;
     delete process.env.SERVICE_ACCOUNT_KEY_PATH;
     delete process.env.BIGQUERY_DATASET_ID;
-    delete process.env.BIGQUERY_PROJECT_ID;
     delete process.env.REPOSITORIES;
     delete process.env.LOOKBACK_DAYS;
     delete process.env.TARGET_BRANCH;
@@ -91,7 +90,6 @@ describe('Config', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
-      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = 'owner/repo1,owner/repo2';
 
       const config = loadConfig();
@@ -100,7 +98,6 @@ describe('Config', () => {
         githubToken: 'test-token',
         serviceAccountKeyPath: '/path/to/key.json',
         bigQueryDatasetId: 'test_dataset',
-        bigQueryProjectId: 'test-project',
         repositories: ['owner/repo1', 'owner/repo2'],
         lookbackDays: 5,
         targetBranch: 'main',
@@ -157,7 +154,6 @@ describe('Config', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
-      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = 'owner/repo';
       process.env.ENABLED_METRICS = 'time_to_first_review,time_to_merge';
 
@@ -179,7 +175,6 @@ describe('Config', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
-      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = 'owner/repo';
       process.env.ENABLED_METRICS = 'time_to_merge';
 
@@ -201,7 +196,6 @@ describe('Config', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
-      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = ' owner/repo1 , owner/repo2 , owner/repo3 ';
 
       const config = loadConfig();
@@ -213,7 +207,6 @@ describe('Config', () => {
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.SERVICE_ACCOUNT_KEY_PATH = '/path/to/key.json';
       process.env.BIGQUERY_DATASET_ID = 'test_dataset';
-      process.env.BIGQUERY_PROJECT_ID = 'test-project';
       process.env.REPOSITORIES = 'owner/repo';
       process.env.ENABLED_METRICS = ' time_to_first_review , time_to_merge ';
 
@@ -237,7 +230,6 @@ describe('Config', () => {
       githubToken: 'test-token',
       serviceAccountKeyPath: '/path/to/key.json',
       bigQueryDatasetId: 'test_dataset',
-      bigQueryProjectId: 'test-project',
       repositories: ['owner/repo'],
       lookbackDays: 30,
       targetBranch: 'main',
@@ -271,11 +263,6 @@ describe('Config', () => {
     test('should not require service account key path in print-only mode', () => {
       const config = { ...baseValidConfig, serviceAccountKeyPath: '', printOnly: true };
       expect(validateConfig(config)).toBe(true);
-    });
-
-    test('should return false for missing BigQuery project ID in non-print mode', () => {
-      const config = { ...baseValidConfig, bigQueryProjectId: '' };
-      expect(validateConfig(config)).toBe(false);
     });
 
     test('should not require BigQuery dataset ID in print-only mode', () => {

@@ -110,10 +110,9 @@ You can also configure the tool using environment variables:
 
 - `GITHUB_TOKEN`: GitHub token with repo scope
 - `REPOSITORIES`: Comma-separated list of repositories to track (optional, overrides config.json)
-- `BIGQUERY_PROJECT_ID`: Google Cloud project ID
 - `BIGQUERY_DATASET_ID`: BigQuery dataset ID (optional, defaults to config.json)
 - `BIGQUERY_TABLE_ID`: BigQuery table ID (optional, defaults to config.json)
-- `SERVICE_ACCOUNT_KEY_PATH`: Path to the service account key file (optional, defaults to config.json)
+- `SERVICE_ACCOUNT_KEY_PATH`: Path to the service account key file (optional, overrides config.json)
 - `TARGET_BRANCH`: Target branch to track PRs for (optional, default: main)
 - `PRINT_ONLY`: Set to 'true' to print metrics to console instead of uploading to BigQuery
 - `ENABLED_METRICS`: Comma-separated list of metrics to collect (e.g., "time_to_first_review,time_to_merge")
@@ -182,7 +181,6 @@ jobs:
         uses: ./.github/actions/eng-metrics
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BIGQUERY_PROJECT_ID: ${{ secrets.BIGQUERY_PROJECT_ID }}
           SERVICE_ACCOUNT_KEY_PATH: './service-account-key.json'
 ```
 
@@ -204,7 +202,6 @@ Make sure to set the following secrets in your repository:
 
 - `GITHUB_TOKEN`: GitHub token with repo scope (automatically provided by GitHub Actions)
 - `GCP_SERVICE_ACCOUNT_KEY`: JSON service account key as a string
-- `BIGQUERY_PROJECT_ID`: Google Cloud project ID
 
 ## BigQuery Schema
 

@@ -81,7 +81,6 @@ const loadConfigFromEnv = () => {
 
   // Add other environment variables if they are defined
   if (process.env.GITHUB_TOKEN) config.githubToken = process.env.GITHUB_TOKEN;
-  if (process.env.BIGQUERY_PROJECT_ID) config.bigQueryProjectId = process.env.BIGQUERY_PROJECT_ID;
   if (process.env.BIGQUERY_DATASET_ID) config.bigQueryDatasetId = process.env.BIGQUERY_DATASET_ID;
   if (process.env.SERVICE_ACCOUNT_KEY_PATH) config.serviceAccountKeyPath = process.env.SERVICE_ACCOUNT_KEY_PATH;
   if (process.env.TARGET_BRANCH) config.targetBranch = process.env.TARGET_BRANCH;
@@ -119,7 +118,7 @@ const validateConfig = (config) => {
 
   // Fields required only when not in print-only mode
   if (!config.printOnly) {
-    requiredFields.push('bigQueryProjectId', 'serviceAccountKeyPath');
+    requiredFields.push('serviceAccountKeyPath');
   }
 
   const missingFields = requiredFields.filter(field => !config[field]);

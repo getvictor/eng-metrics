@@ -17,6 +17,7 @@ export class BigQueryClient {
    */
   constructor(keyFilePath) {
     this.bigquery = null;
+    this.projectId = null;
     this.initialize(keyFilePath);
   }
 
@@ -33,8 +34,20 @@ export class BigQueryClient {
     }
 
     try {
+      // Read and parse the service account key to extract project_id
+      const keyFileContent = fs.readFileSync(keyFilePath, 'utf8');
+      const serviceAccountKey = JSON.parse(keyFileContent);
+
+      if (!serviceAccountKey.project_id) {
+        throw new Error('Service account key file must contain a project_id field');
+      }
+
+      this.projectId = serviceAccountKey.project_id;
+      logger.info(`Extracted project ID from service account key: ${this.projectId}`);
+
       this.bigquery = new BigQuery({
-        keyFilename: keyFilePath
+        keyFilename: keyFilePath,
+        projectId: this.projectId
       });
 
       logger.info('BigQuery client initialized');
@@ -42,6 +55,14 @@ export class BigQueryClient {
       logger.error('Failed to initialize BigQuery client', err);
       throw err;
     }
+  }
+
+  /**
+   * Gets the project ID extracted from the service account key
+   * @returns {string} Project ID
+   */
+  getProjectId() {
+    return this.projectId;
   }
 
   /**
@@ -106,7 +127,7 @@ export class BigQueryClient {
           field: 'first_review_time'
         },
         clustering: {
-          fields: ['pr_creator']
+          fields: ['pr_creator', 'pr_number']
         }
       };
 
@@ -117,7 +138,7 @@ export class BigQueryClient {
           field: 'merge_time'
         },
         clustering: {
-          fields: ['pr_creator']
+          fields: ['pr_creator', 'pr_number']
         }
       };
 
@@ -231,7 +252,7 @@ export class BigQueryClient {
       // Create a query to check for existing PR numbers
       const query = `
         SELECT pr_number
-        FROM \`${datasetId}.${tableId}\`
+        FROM \`${this.projectId}.${datasetId}.${tableId}\`
         WHERE pr_number IN (${prNumbers.join(',')})
       `;
 

@@ -15,7 +15,17 @@ jest.mock('../src/logger.js', () => ({
 
 // Mock fs
 jest.mock('fs', () => ({
-  existsSync: jest.fn(() => true)
+  existsSync: jest.fn(() => true),
+  readFileSync: jest.fn(() => JSON.stringify({
+    project_id: 'test-project-id',
+    type: 'service_account',
+    private_key_id: 'key-id',
+    private_key: '-----BEGIN PRIVATE KEY-----\ntest-key\n-----END PRIVATE KEY-----\n',
+    client_email: 'test@test-project-id.iam.gserviceaccount.com',
+    client_id: '123456789',
+    auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+    token_uri: 'https://oauth2.googleapis.com/token'
+  }))
 }));
 
 // Mock @google-cloud/bigquery
@@ -53,6 +63,14 @@ describe('BigQueryClient', () => {
     // Create client without calling constructor to avoid file check
     bigqueryClient = Object.create(BigQueryClient.prototype);
     bigqueryClient.bigquery = mockBigQuery;
+    bigqueryClient.projectId = 'test-project-id';
+  });
+
+
+  describe('getProjectId', () => {
+    test('should return the extracted project ID', () => {
+      expect(bigqueryClient.getProjectId()).toBe('test-project-id');
+    });
   });
 
   describe('getSchemaForMetricType', () => {
@@ -105,7 +123,7 @@ describe('BigQueryClient', () => {
           field: 'first_review_time'
         },
         clustering: {
-          fields: ['pr_creator']
+          fields: ['pr_creator', 'pr_number']
         }
       });
     });
@@ -119,7 +137,7 @@ describe('BigQueryClient', () => {
           field: 'merge_time'
         },
         clustering: {
-          fields: ['pr_creator']
+          fields: ['pr_creator', 'pr_number']
         }
       });
     });
@@ -215,7 +233,7 @@ describe('BigQueryClient', () => {
           field: 'first_review_time'
         },
         clustering: {
-          fields: ['pr_creator']
+          fields: ['pr_creator', 'pr_number']
         }
       });
     });
@@ -233,7 +251,7 @@ describe('BigQueryClient', () => {
           field: 'merge_time'
         },
         clustering: {
-          fields: ['pr_creator']
+          fields: ['pr_creator', 'pr_number']
         }
       });
     });
