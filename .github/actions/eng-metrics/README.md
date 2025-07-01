@@ -87,14 +87,13 @@ Create a `config.json` file with the following structure:
   ],
   "targetBranch": "main",
   "bigQueryDatasetId": "github_metrics",
-  "bigQueryTableId": "first_review",
   "lookbackDays": 5,
   "serviceAccountKeyPath": "./service-account-key.json",
   "printOnly": false,
   "metrics": {
     "timeToFirstReview": {
       "enabled": true,
-      "tableName": "first_review"
+      "tableName": "pr_first_review"
     },
     "timeToMerge": {
       "enabled": true,
@@ -119,6 +118,16 @@ You can also configure the tool using environment variables:
 - `TIME_TO_MERGE_TABLE`: Override table name for Time to Merge metrics (optional, defaults to "pr_merge")
 
 Create a `.env` file based on the provided `.env.example` to set these variables.
+
+### Configuration Priority
+
+The tool uses the following configuration priority order (highest priority overrides lower priority):
+
+1. **Environment Variables** (highest priority) - Values from `.env` file or system environment
+2. **JSON Configuration File** (medium priority) - Values from `config.json` or specified config file
+3. **Default Configuration** (lowest priority) - Built-in default values
+
+This means that environment variables will always override values in the JSON configuration file, and both will override any default values. For example, if you have `"printOnly": false` in your `config.json` file but set `PRINT_ONLY=true` in your `.env` file, the tool will run in print-only mode.
 
 ## Usage
 
@@ -209,7 +218,7 @@ Make sure to set the following secrets in your repository:
 
 The tool uses separate BigQuery tables for different metric types to optimize performance and enable independent analysis:
 
-#### Table 1: `first_review` (Time to First Review)
+#### Table 1: `pr_first_review` (Time to First Review)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -279,7 +288,7 @@ SELECT
   AVG(pickup_time_seconds) / 3600 AS avg_time_to_first_review_hours,
   COUNT(*) AS total_prs
 FROM
-  `your-project.github_metrics.first_review`
+  `your-project.github_metrics.pr_first_review`
 WHERE
   review_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
 GROUP BY
@@ -293,7 +302,7 @@ SELECT
   AVG(pickup_time_seconds) / 3600 AS avg_time_to_first_review_hours,
   COUNT(*) AS pr_count
 FROM
-  `your-project.github_metrics.first_review`
+  `your-project.github_metrics.pr_first_review`
 WHERE
   review_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 WEEK)
 GROUP BY
@@ -327,7 +336,7 @@ SELECT
   COUNT(fr.pr_number) AS reviewed_prs,
   COUNT(pm.pr_number) AS merged_prs
 FROM
-  `your-project.github_metrics.first_review` fr
+  `your-project.github_metrics.pr_first_review` fr
 FULL OUTER JOIN
   `your-project.github_metrics.pr_merge` pm
 ON
@@ -351,7 +360,7 @@ SELECT
   AVG(pickup_time_seconds) / 3600 AS avg_time_to_first_review_hours,
   PERCENTILE_CONT(pickup_time_seconds, 0.5) OVER() / 3600 AS median_time_hours
 FROM
-  `your-project.github_metrics.first_review`
+  `your-project.github_metrics.pr_first_review`
 WHERE
   review_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
 GROUP BY

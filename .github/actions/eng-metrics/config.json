@@ -10,7 +10,7 @@
   "metrics": {
     "timeToFirstReview": {
       "enabled": true,
-      "tableName": "first_review"
+      "tableName": "pr_first_review"
     },
     "timeToMerge": {
       "enabled": true,

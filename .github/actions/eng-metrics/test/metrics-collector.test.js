@@ -49,7 +49,7 @@ describe('MetricsCollector', () => {
       metrics: {
         timeToFirstReview: {
           enabled: true,
-          tableName: 'first_review'
+          tableName: 'pr_first_review'
         },
         timeToMerge: {
           enabled: true,
@@ -59,7 +59,7 @@ describe('MetricsCollector', () => {
     };
 
     metricsCollector = new MetricsCollector(mockConfig);
-    
+
     // Mock the clients
     mockGitHubClient = {
       fetchPullRequests: jest.fn(),
@@ -213,7 +213,7 @@ describe('MetricsCollector', () => {
   describe('getTableNameForMetricType', () => {
     test('should return correct table name for time_to_first_review', () => {
       const tableName = metricsCollector.getTableNameForMetricType('time_to_first_review');
-      expect(tableName).toBe('first_review');
+      expect(tableName).toBe('pr_first_review');
     });
 
     test('should return correct table name for time_to_merge', () => {
@@ -251,12 +251,12 @@ describe('MetricsCollector', () => {
       await metricsCollector.uploadMetrics(metrics);
 
       expect(mockBigQueryClient.uploadMetrics).toHaveBeenCalledTimes(2);
-      
+
       // Check first call (time_to_first_review)
       expect(mockBigQueryClient.uploadMetrics).toHaveBeenNthCalledWith(
         1,
         'test_dataset',
-        'first_review',
+        'pr_first_review',
         [
           { metricType: 'time_to_first_review', prNumber: 123, pickupTimeSeconds: 7200 },
           { metricType: 'time_to_first_review', prNumber: 124, pickupTimeSeconds: 3600 }
@@ -294,7 +294,7 @@ describe('MetricsCollector', () => {
       expect(mockBigQueryClient.uploadMetrics).toHaveBeenCalledTimes(1);
       expect(mockBigQueryClient.uploadMetrics).toHaveBeenCalledWith(
         'test_dataset',
-        'first_review',
+        'pr_first_review',
         [{ metricType: 'time_to_first_review', prNumber: 123, pickupTimeSeconds: 7200 }]
       );
     });

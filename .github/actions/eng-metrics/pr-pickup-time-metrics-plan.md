@@ -260,7 +260,7 @@ jobs:
           gcp-service-account-key: ${{ secrets.GCP_SA_KEY }}
           bigquery-project: 'your-project-id'
           bigquery-dataset: 'github_metrics'
-          bigquery-table: 'first_review'
+          bigquery-table: 'pr_first_review'
 ```
 
 ## Challenges and Considerations

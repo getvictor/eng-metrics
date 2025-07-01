@@ -29,13 +29,13 @@ describe('Time to Merge Integration Tests', () => {
 
     expect(config.metrics.timeToFirstReview.enabled).toBe(true);
     expect(config.metrics.timeToMerge.enabled).toBe(true);
-    expect(config.metrics.timeToFirstReview.tableName).toBe('first_review');
+    expect(config.metrics.timeToFirstReview.tableName).toBe('pr_first_review');
     expect(config.metrics.timeToMerge.tableName).toBe('pr_merge');
   });
 
   test('should calculate time to merge for a merged PR', () => {
     const githubClient = new GitHubClient('fake-token');
-    
+
     const mergedPR = {
       number: 123,
       html_url: 'https://github.com/owner/repo/pull/123',
@@ -134,7 +134,7 @@ describe('Time to Merge Integration Tests', () => {
   test('should group metrics by type correctly', () => {
     const config = {
       metrics: {
-        timeToFirstReview: { enabled: true, tableName: 'first_review' },
+        timeToFirstReview: { enabled: true, tableName: 'pr_first_review' },
         timeToMerge: { enabled: true, tableName: 'pr_merge' }
       }
     };
@@ -156,14 +156,14 @@ describe('Time to Merge Integration Tests', () => {
   test('should get correct table names for metric types', () => {
     const config = {
       metrics: {
-        timeToFirstReview: { enabled: true, tableName: 'first_review' },
+        timeToFirstReview: { enabled: true, tableName: 'pr_first_review' },
         timeToMerge: { enabled: true, tableName: 'pr_merge' }
       }
     };
 
     const metricsCollector = new MetricsCollector(config);
 
-    expect(metricsCollector.getTableNameForMetricType('time_to_first_review')).toBe('first_review');
+    expect(metricsCollector.getTableNameForMetricType('time_to_first_review')).toBe('pr_first_review');
     expect(metricsCollector.getTableNameForMetricType('time_to_merge')).toBe('pr_merge');
   });
 });

@@ -283,7 +283,7 @@ describe('BigQueryClient', () => {
         }
       ];
 
-      await bigqueryClient.uploadMetrics('test_dataset', 'first_review', metrics);
+      await bigqueryClient.uploadMetrics('test_dataset', 'pr_first_review', metrics);
 
       expect(mockTable.insert).toHaveBeenCalledWith([
         {
@@ -301,7 +301,7 @@ describe('BigQueryClient', () => {
     });
 
     test('should handle empty metrics array', async () => {
-      await bigqueryClient.uploadMetrics('test_dataset', 'first_review', []);
+      await bigqueryClient.uploadMetrics('test_dataset', 'pr_first_review', []);
 
       expect(mockTable.insert).not.toHaveBeenCalled();
     });
@@ -325,7 +325,7 @@ describe('BigQueryClient', () => {
       // Mock existing metrics check to return that PR 123 already exists
       mockBigQuery.query.mockResolvedValue([[{ pr_number: 123 }]]);
 
-      await bigqueryClient.uploadMetrics('test_dataset', 'first_review', metrics);
+      await bigqueryClient.uploadMetrics('test_dataset', 'pr_first_review', metrics);
 
       expect(mockTable.insert).not.toHaveBeenCalled();
     });

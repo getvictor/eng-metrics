@@ -50,7 +50,7 @@ describe('Config', () => {
   beforeEach(() => {
     // Save original environment
     originalEnv = { ...process.env };
-    
+
     // Clear environment variables
     delete process.env.GITHUB_TOKEN;
     delete process.env.SERVICE_ACCOUNT_KEY_PATH;
@@ -65,10 +65,10 @@ describe('Config', () => {
 
     // Reset all mocks
     jest.clearAllMocks();
-    
+
     // Mock fs.existsSync to return true for config.json
     mockFs.existsSync.mockReturnValue(true);
-    
+
     // Mock fs.readFileSync to return a default config
     mockFs.readFileSync.mockReturnValue(JSON.stringify({
       repositories: ['owner/repo1', 'owner/repo2'],
@@ -105,7 +105,7 @@ describe('Config', () => {
         metrics: {
           timeToFirstReview: {
             enabled: true,
-            tableName: 'first_review'
+            tableName: 'pr_first_review'
           },
           timeToMerge: {
             enabled: true,
@@ -162,7 +162,7 @@ describe('Config', () => {
       expect(config.metrics).toEqual({
         timeToFirstReview: {
           enabled: true,
-          tableName: 'first_review'
+          tableName: 'pr_first_review'
         },
         timeToMerge: {
           enabled: true,
@@ -183,7 +183,7 @@ describe('Config', () => {
       expect(config.metrics).toEqual({
         timeToFirstReview: {
           enabled: false,
-          tableName: 'first_review'
+          tableName: 'pr_first_review'
         },
         timeToMerge: {
           enabled: true,
@@ -215,7 +215,7 @@ describe('Config', () => {
       expect(config.metrics).toEqual({
         timeToFirstReview: {
           enabled: true,
-          tableName: 'first_review'
+          tableName: 'pr_first_review'
         },
         timeToMerge: {
           enabled: true,
@@ -237,7 +237,7 @@ describe('Config', () => {
       metrics: {
         timeToFirstReview: {
           enabled: true,
-          tableName: 'first_review'
+          tableName: 'pr_first_review'
         },
         timeToMerge: {
           enabled: true,
@@ -289,7 +289,7 @@ describe('Config', () => {
       const config = {
         ...baseValidConfig,
         metrics: {
-          timeToFirstReview: { enabled: false, tableName: 'first_review' },
+          timeToFirstReview: { enabled: false, tableName: 'pr_first_review' },
           timeToMerge: { enabled: false, tableName: 'pr_merge' }
         }
       };
@@ -319,17 +319,17 @@ describe('Config', () => {
     });
 
     test('should validate multiple valid repositories', () => {
-      const config = { 
-        ...baseValidConfig, 
-        repositories: ['owner1/repo1', 'owner2/repo2', 'owner3/repo3'] 
+      const config = {
+        ...baseValidConfig,
+        repositories: ['owner1/repo1', 'owner2/repo2', 'owner3/repo3']
       };
       expect(validateConfig(config)).toBe(true);
     });
 
     test('should throw error for mixed valid and invalid repositories', () => {
-      const config = { 
-        ...baseValidConfig, 
-        repositories: ['owner1/repo1', 'invalid-repo', 'owner3/repo3'] 
+      const config = {
+        ...baseValidConfig,
+        repositories: ['owner1/repo1', 'invalid-repo', 'owner3/repo3']
       };
       expect(validateConfig(config)).toBe(false);
     });

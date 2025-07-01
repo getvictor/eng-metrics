@@ -46,14 +46,14 @@ describe('End-to-End Time to Merge Workflow', () => {
   test('should collect both Time to First Review and Time to Merge metrics', async () => {
     // Load configuration
     const config = loadConfig();
-    
+
     // Verify both metrics are enabled
     expect(config.metrics.timeToFirstReview.enabled).toBe(true);
     expect(config.metrics.timeToMerge.enabled).toBe(true);
 
     // Create metrics collector
     const metricsCollector = new MetricsCollector(config);
-    
+
     // Mock the GitHub client methods
     metricsCollector.githubClient = {
       fetchPullRequests: jest.fn().mockResolvedValue([
@@ -61,9 +61,9 @@ describe('End-to-End Time to Merge Workflow', () => {
           number: 123,
           html_url: 'https://github.com/owner/repo/pull/123',
           user: { login: 'testuser' },
-          base: { 
+          base: {
             ref: 'main',
-            repo: { 
+            repo: {
               owner: { login: 'owner' },
               name: 'repo'
             }
@@ -117,7 +117,7 @@ describe('End-to-End Time to Merge Workflow', () => {
 
     // Verify that both metrics were collected
     expect(metrics).toHaveLength(2);
-    
+
     const firstReviewMetric = metrics.find(m => m.metricType === 'time_to_first_review');
     const mergeMetric = metrics.find(m => m.metricType === 'time_to_merge');
 
@@ -137,9 +137,9 @@ describe('End-to-End Time to Merge Workflow', () => {
   test('should handle configuration with only Time to Merge enabled', async () => {
     // Override environment to enable only Time to Merge
     process.env.ENABLED_METRICS = 'time_to_merge';
-    
+
     const config = loadConfig();
-    
+
     expect(config.metrics.timeToFirstReview.enabled).toBe(false);
     expect(config.metrics.timeToMerge.enabled).toBe(true);
 
@@ -220,12 +220,12 @@ describe('End-to-End Time to Merge Workflow', () => {
 
     // Test grouping
     const grouped = metricsCollector.groupMetricsByType(mixedMetrics);
-    
+
     expect(grouped.time_to_first_review).toHaveLength(2);
     expect(grouped.time_to_merge).toHaveLength(1);
 
     // Test table name mapping
-    expect(metricsCollector.getTableNameForMetricType('time_to_first_review')).toBe('first_review');
+    expect(metricsCollector.getTableNameForMetricType('time_to_first_review')).toBe('pr_first_review');
     expect(metricsCollector.getTableNameForMetricType('time_to_merge')).toBe('pr_merge');
   });
 });

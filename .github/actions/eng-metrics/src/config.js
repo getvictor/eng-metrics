@@ -34,7 +34,7 @@ const DEFAULT_CONFIG = {
   metrics: {
     timeToFirstReview: {
       enabled: true,
-      tableName: 'first_review'
+      tableName: 'pr_first_review'
     },
     timeToMerge: {
       enabled: true,
@@ -92,7 +92,7 @@ const loadConfigFromEnv = () => {
     config.metrics = {
       timeToFirstReview: {
         enabled: enabledMetrics.includes('time_to_first_review'),
-        tableName: process.env.TIME_TO_FIRST_REVIEW_TABLE || 'first_review'
+        tableName: process.env.TIME_TO_FIRST_REVIEW_TABLE || 'pr_first_review'
       },
       timeToMerge: {
         enabled: enabledMetrics.includes('time_to_merge'),
