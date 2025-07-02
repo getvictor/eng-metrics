@@ -102,8 +102,8 @@ describe('Config', () => {
         lookbackDays: 5,
         targetBranch: 'main',
         printOnly: false,
-        userGroupEnabled: false,
-        userGroupFilepath: 'handbook/company/product-groups.md',
+        userGroupEnabled: true,
+        userGroupFilepath: '../../../handbook/company/product-groups.md',
         metrics: {
           timeToFirstReview: {
             enabled: true,
@@ -139,8 +139,8 @@ describe('Config', () => {
         lookbackDays: 5,
         targetBranch: 'develop',
         printOnly: true,
-        userGroupEnabled: false,
-        userGroupFilepath: 'handbook/company/product-groups.md',
+        userGroupEnabled: true,
+        userGroupFilepath: '../../../handbook/company/product-groups.md',
         metrics: {
           timeToFirstReview: {
             enabled: true,

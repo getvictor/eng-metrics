@@ -21,7 +21,7 @@ describe('GitHubClient - Time to Merge', () => {
   beforeEach(() => {
     // Create a new instance of GitHubClient for each test
     githubClient = new GitHubClient('fake-token');
-    
+
     // Mock the Octokit instance
     githubClient.octokit = {
       rest: {
@@ -58,6 +58,9 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [
+          { submitted_at: '2023-05-10T11:30:00Z' }
+        ],
         expected: {
           metricType: 'time_to_merge',
           repository: 'owner/repo',
@@ -91,10 +94,13 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [
-          { 
+          {
             event: 'ready_for_review',
             created_at: '2023-05-11T10:00:00Z'
           }
+        ],
+        reviewEvents: [
+          { submitted_at: '2023-05-11T11:00:00Z' }
         ],
         expected: {
           metricType: 'time_to_merge',
@@ -129,18 +135,21 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [
-          { 
+          {
             event: 'ready_for_review',
             created_at: '2023-05-12T10:00:00Z'
           },
-          { 
+          {
             event: 'convert_to_draft',
             created_at: '2023-05-12T11:00:00Z'
           },
-          { 
+          {
             event: 'ready_for_review',
             created_at: '2023-05-12T12:00:00Z'
           }
+        ],
+        reviewEvents: [
+          { submitted_at: '2023-05-12T13:00:00Z' }
         ],
         expected: {
           metricType: 'time_to_merge',
@@ -175,14 +184,17 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [
-          { 
+          {
             event: 'convert_to_draft',
             created_at: '2023-05-16T10:00:00Z'
           },
-          { 
+          {
             event: 'ready_for_review',
             created_at: '2023-05-16T12:00:00Z' // After merge
           }
+        ],
+        reviewEvents: [
+          { submitted_at: '2023-05-16T11:00:00Z' }
         ],
         expected: {
           metricType: 'time_to_merge',
@@ -217,6 +229,9 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [
+          { submitted_at: '2023-05-14T11:00:00Z' }
+        ],
         expected: null // Should return null because no ready event was found
       },
       {
@@ -238,6 +253,7 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [],
         expected: null // Should return null because PR was not merged
       },
       {
@@ -259,6 +275,7 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [],
         expected: null // Should return null because PR is not merged
       },
       {
@@ -280,6 +297,9 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [
+          { submitted_at: '2023-06-11T13:00:00Z' } // Sunday, 3 weeks later
+        ],
         expected: {
           metricType: 'time_to_merge',
           repository: 'owner/repo',
@@ -313,6 +333,7 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [],
         expected: {
           metricType: 'time_to_merge',
           repository: 'owner/repo',
@@ -346,6 +367,7 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [],
         expected: {
           metricType: 'time_to_merge',
           repository: 'owner/repo',
@@ -379,6 +401,7 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [],
         expected: {
           metricType: 'time_to_merge',
           repository: 'owner/repo',
@@ -412,6 +435,7 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [],
         expected: {
           metricType: 'time_to_merge',
           repository: 'owner/repo',
@@ -445,6 +469,7 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [],
         expected: {
           metricType: 'time_to_merge',
           repository: 'owner/repo',
@@ -478,6 +503,7 @@ describe('GitHubClient - Time to Merge', () => {
           }
         },
         timelineEvents: [],
+        reviewEvents: [],
         expected: {
           metricType: 'time_to_merge',
           repository: 'owner/repo',
@@ -495,16 +521,16 @@ describe('GitHubClient - Time to Merge', () => {
     ];
 
     // Run each test case
-    test.each(testCases)('$name', ({ pr, timelineEvents, expected }) => {
-      const result = githubClient.calculateTimeToMerge(pr, timelineEvents);
-      
+    test.each(testCases)('$name', ({ pr, timelineEvents, reviewEvents, expected }) => {
+      const result = githubClient.calculateTimeToMerge(pr, timelineEvents, reviewEvents);
+
       if (expected === null) {
         expect(result).toBeNull();
       } else {
         // Compare date objects separately
         expect(result.readyTime).toEqual(expected.readyTime);
         expect(result.mergeTime).toEqual(expected.mergeTime);
-        
+
         // Compare the rest of the properties
         expect({
           ...result,

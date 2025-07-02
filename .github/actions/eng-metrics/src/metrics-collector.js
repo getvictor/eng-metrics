@@ -35,10 +35,10 @@ export class MetricsCollector {
   async initialize() {
     try {
       logger.info('Initializing metrics collector');
-      
+
       // Initialize GitHub client
       this.githubClient = new GitHubClient(this.config.githubToken);
-      
+
       // Initialize BigQuery client only if not in print-only mode
       if (!this.config.printOnly) {
         this.bigqueryClient = new BigQueryClient(this.config.serviceAccountKeyPath);
@@ -68,7 +68,7 @@ export class MetricsCollector {
         }
         logger.info('User group client initialized');
       }
-      
+
       logger.info('Metrics collector initialized');
     } catch (err) {
       logger.error('Failed to initialize metrics collector', err);
@@ -94,7 +94,7 @@ export class MetricsCollector {
       // Calculate the date to fetch PRs from (lookbackDays ago)
       const since = new Date();
       since.setDate(since.getDate() - this.config.lookbackDays);
-      
+
       // Fetch PRs updated since the lookback date
       const pullRequests = await this.githubClient.fetchPullRequests(
         owner,
@@ -103,12 +103,12 @@ export class MetricsCollector {
         since,
         this.config.targetBranch
       );
-      
+
       logger.info(`Found ${pullRequests.length} PRs for ${repository}`);
-      
+
       // Collect metrics for each PR
       const metrics = [];
-      
+
       for (const pr of pullRequests) {
         try {
           // Fetch PR timeline events (shared for all metrics)
@@ -117,14 +117,14 @@ export class MetricsCollector {
             repo,
             pr.number
           );
-          
+
           // Fetch PR review events (needed for Time to First Review)
           const reviewEvents = await this.githubClient.fetchPRReviewEvents(
             owner,
             repo,
             pr.number
           );
-          
+
           // Collect enabled metrics for this PR
           const prMetrics = await this.collectPRMetrics(pr, timelineEvents, reviewEvents);
           metrics.push(...prMetrics);
@@ -132,7 +132,7 @@ export class MetricsCollector {
           logger.error(`Error collecting metrics for PR ${repository}#${pr.number}`, err);
         }
       }
-      
+
       logger.info(`Collected ${metrics.length} metrics for ${repository}`);
       return metrics;
     } catch (err) {
@@ -150,7 +150,7 @@ export class MetricsCollector {
    */
   async collectPRMetrics(pr, timelineEvents, reviewEvents) {
     const metrics = [];
-    
+
     // Collect Time to First Review if enabled
     if (this.config.metrics.timeToFirstReview.enabled) {
       try {
@@ -159,7 +159,7 @@ export class MetricsCollector {
           timelineEvents,
           reviewEvents
         );
-        
+
         if (pickupTimeMetrics) {
           metrics.push(pickupTimeMetrics);
         }
@@ -167,15 +167,16 @@ export class MetricsCollector {
         logger.error(`Error calculating Time to First Review for PR #${pr.number}`, err);
       }
     }
-    
+
     // Collect Time to Merge if enabled
     if (this.config.metrics.timeToMerge.enabled) {
       try {
         const mergeTimeMetrics = this.githubClient.calculateTimeToMerge(
           pr,
-          timelineEvents
+          timelineEvents,
+          reviewEvents
         );
-        
+
         if (mergeTimeMetrics) {
           metrics.push(mergeTimeMetrics);
         }
@@ -183,7 +184,7 @@ export class MetricsCollector {
         logger.error(`Error calculating Time to Merge for PR #${pr.number}`, err);
       }
     }
-    
+
     return metrics;
   }
 
@@ -194,15 +195,15 @@ export class MetricsCollector {
   async collectMetrics() {
     try {
       logger.info('Collecting metrics for all repositories');
-      
+
       const allMetrics = [];
-      
+
       // Collect metrics for each repository
       for (const repository of this.config.repositories) {
         const metrics = await this.collectRepositoryMetrics(repository);
         allMetrics.push(...metrics);
       }
-      
+
       logger.info(`Collected ${allMetrics.length} metrics in total`);
       return allMetrics;
     } catch (err) {
@@ -223,10 +224,10 @@ export class MetricsCollector {
 
     try {
       logger.info('Processing user groups');
-      
+
       // Parse user groups from markdown file
       const userGroups = parseProductGroups(this.config.userGroupFilepath);
-      
+
       if (userGroups.length === 0) {
         logger.warn('No user groups found in markdown file');
         return;
@@ -245,7 +246,7 @@ export class MetricsCollector {
 
       // Sync user groups to BigQuery
       await this.userGroupClient.syncUserGroups(validUserGroups);
-      
+
       logger.info(`Successfully processed ${validUserGroups.length} user group mappings`);
     } catch (err) {
       logger.error('Error processing user groups', err);
@@ -263,37 +264,37 @@ export class MetricsCollector {
         logger.warn('No metrics to print');
         return;
       }
-      
+
       logger.info(`Printing ${metrics.length} metrics to console`);
-      
+
       // Group metrics by type for organized display
       const metricsByType = this.groupMetricsByType(metrics);
-      
+
       console.log('\n=== Engineering Metrics ===\n');
-      
+
       // Print each metric type separately
       for (const [metricType, typeMetrics] of Object.entries(metricsByType)) {
         if (typeMetrics.length === 0) continue;
-        
+
         console.log(`--- ${this.getMetricTypeDisplayName(metricType)} (${typeMetrics.length} metrics) ---\n`);
-        
+
         // Sort metrics by time (descending)
         const sortedMetrics = [...typeMetrics].sort((a, b) => {
           const timeFieldA = this.getTimeFieldForMetricType(metricType, a);
           const timeFieldB = this.getTimeFieldForMetricType(metricType, b);
           return timeFieldB - timeFieldA;
         });
-        
+
         // Print each metric
         sortedMetrics.forEach((metric, index) => {
           this.printSingleMetric(metric, index + 1);
         });
-        
+
         // Print summary statistics for this metric type
         this.printMetricTypeSummary(metricType, typeMetrics);
         console.log('');
       }
-      
+
       logger.info('Metrics printed successfully');
     } catch (err) {
       logger.error('Error printing metrics', err);
@@ -311,23 +312,23 @@ export class MetricsCollector {
     console.log(`    URL: ${metric.prUrl}`);
     console.log(`    Creator: ${metric.prCreator}`);
     console.log(`    Ready Time: ${metric.readyTime.toISOString()}${metric.readyEventType ? ` (${metric.readyEventType})` : ''}`);
-    
+
     if (metric.metricType === 'time_to_first_review') {
       const hours = Math.floor(metric.pickupTimeSeconds / 3600);
       const minutes = Math.floor((metric.pickupTimeSeconds % 3600) / 60);
       const seconds = metric.pickupTimeSeconds % 60;
-      
+
       console.log(`    First Review Time: ${metric.firstReviewTime.toISOString()}`);
       console.log(`    Pickup Time: ${hours}h ${minutes}m ${seconds}s (${metric.pickupTimeSeconds} seconds)`);
     } else if (metric.metricType === 'time_to_merge') {
       const hours = Math.floor(metric.mergeTimeSeconds / 3600);
       const minutes = Math.floor((metric.mergeTimeSeconds % 3600) / 60);
       const seconds = metric.mergeTimeSeconds % 60;
-      
+
       console.log(`    Merge Time: ${metric.mergeTime.toISOString()}`);
       console.log(`    Time to Merge: ${hours}h ${minutes}m ${seconds}s (${metric.mergeTimeSeconds} seconds)`);
     }
-    
+
     console.log('');
   }
 
@@ -343,7 +344,7 @@ export class MetricsCollector {
     const avgHours = Math.floor(avgTime / 3600);
     const avgMinutes = Math.floor((avgTime % 3600) / 60);
     const avgSeconds = Math.floor(avgTime % 60);
-    
+
     console.log(`=== ${this.getMetricTypeDisplayName(metricType)} Summary ===`);
     console.log(`Total PRs: ${metrics.length}`);
     console.log(`Average Time: ${avgHours}h ${avgMinutes}m ${avgSeconds}s (${Math.floor(avgTime)} seconds)`);
@@ -392,26 +393,26 @@ export class MetricsCollector {
         logger.warn('No metrics to upload');
         return;
       }
-      
+
       logger.info(`Uploading ${metrics.length} metrics to BigQuery`);
-      
+
       // Group metrics by type
       const metricsByType = this.groupMetricsByType(metrics);
-      
+
       // Upload each metric type to its respective table
       for (const [metricType, typeMetrics] of Object.entries(metricsByType)) {
         if (typeMetrics.length === 0) continue;
-        
+
         const tableName = this.getTableNameForMetricType(metricType);
         logger.info(`Uploading ${typeMetrics.length} ${metricType} metrics to table ${tableName}`);
-        
+
         await this.bigqueryClient.uploadMetrics(
           this.config.bigQueryDatasetId,
           tableName,
           typeMetrics
         );
       }
-      
+
       logger.info('All metrics uploaded successfully');
     } catch (err) {
       logger.error('Error uploading metrics to BigQuery', err);
@@ -457,16 +458,16 @@ export class MetricsCollector {
   async run() {
     try {
       logger.info('Starting engineering metrics collection');
-      
+
       // Initialize the metrics collector
       await this.initialize();
-      
+
       // Process user groups if enabled
       await this.processUserGroups();
-      
+
       // Collect metrics
       const metrics = await this.collectMetrics();
-      
+
       if (this.config.printOnly) {
         // Print metrics to console
         this.printMetrics(metrics);
@@ -474,7 +475,7 @@ export class MetricsCollector {
         // Upload metrics to BigQuery
         await this.uploadMetrics(metrics);
       }
-      
+
       logger.info('Engineering metrics collection completed successfully');
       return metrics;
     } catch (err) {

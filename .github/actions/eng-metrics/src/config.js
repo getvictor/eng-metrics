@@ -31,8 +31,8 @@ const DEFAULT_CONFIG = {
   printOnly: false,
 
   // User group management configuration
-  userGroupEnabled: false,
-  userGroupFilepath: 'handbook/company/product-groups.md',
+  userGroupEnabled: true,
+  userGroupFilepath: '../../../handbook/company/product-groups.md',
 
   // Multi-table configuration
   metrics: {

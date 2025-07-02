@@ -30,7 +30,7 @@ jobs:
 
       - name: Create service account key file
         run: |
-          echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > service-account-key.json
+          echo '${{ secrets.ENG_METRICS_GCP_SERVICE_ACCOUNT_KEY }}' > service-account-key.json
           # Verify the file is valid JSON
           cat service-account-key.json | jq . > /dev/null
 

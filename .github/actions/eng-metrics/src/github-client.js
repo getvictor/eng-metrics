@@ -213,56 +213,11 @@ export class GitHubClient {
    */
   calculatePickupTime(pr, timelineEvents, reviewEvents) {
     try {
-      // Find all ready_for_review events
-      const readyForReviewEvents = timelineEvents.filter(event =>
-        event.event === 'ready_for_review'
-      ).map(event => ({
-        time: new Date(event.created_at),
-        event
-      }));
-
-      // Add PR creation time as a ready event if PR was not created as draft
-      if (!pr.draft) {
-        readyForReviewEvents.push({
-          time: new Date(pr.created_at),
-          event: { event: 'created_not_draft', created_at: pr.created_at }
-        });
-      }
-
-      // Sort ready events by time (ascending)
-      readyForReviewEvents.sort((a, b) => a.time - b.time);
-
-      // If we couldn't find any ready events, return null
-      if (readyForReviewEvents.length === 0) {
-        logger.warn(`No ready_for_review events found for ${pr.html_url}`);
+      const result = this.getReadyAndFirstReview(pr, timelineEvents, reviewEvents);
+      if (!result) {
         return null;
       }
-
-      // Find the first review submission
-      if (reviewEvents.length === 0) {
-        logger.warn(`No review events found for ${pr.html_url}`);
-        return null;
-      }
-
-      // Sort review events by submitted_at (ascending)
-      const sortedReviewEvents = [...reviewEvents].sort((a, b) =>
-        new Date(a.submitted_at) - new Date(b.submitted_at)
-      );
-
-      const firstReview = sortedReviewEvents[0];
-      const firstReviewTime = new Date(firstReview.submitted_at);
-
-      // Find the most recent ready event that occurred before the first review
-      const relevantReadyEvent = readyForReviewEvents
-        .filter(readyEvent => readyEvent.time < firstReviewTime)
-        .pop();
-
-      // If no ready event occurred before the first review, return null
-      if (!relevantReadyEvent) {
-        logger.warn(`No ready_for_review event found before first review for ${pr.html_url}`);
-        return null;
-      }
-
+      const { relevantReadyEvent, firstReviewTime } = result;
       const readyTime = relevantReadyEvent.time;
 
       // Calculate pickup time excluding weekends
@@ -309,6 +264,77 @@ export class GitHubClient {
       logger.error(`Error calculating pickup time for ${pr.html_url}`, err);
       return null;
     }
+  }
+
+  /**
+   * Calculates pickup time for a PR
+   * @param {Object} pr - Pull request object
+   * @param {Array} timelineEvents - PR timeline events
+   * @param {Array} reviewEvents - PR review events
+   * @returns {Object} ready event and first review time
+   */
+  getReadyAndFirstReview(pr, timelineEvents, reviewEvents) {
+    const mergeTime = pr.merged_at ? new Date(pr.merged_at) : null;
+    
+    // Find all ready_for_review events that occurred before merge time (if merged)
+    const readyForReviewEvents = timelineEvents.filter(event =>
+      event.event === 'ready_for_review'
+    ).map(event => ({
+      time: new Date(event.created_at),
+      event
+    })).filter(readyEvent =>
+      !mergeTime || readyEvent.time <= mergeTime
+    );
+
+    // Add PR creation time as a ready event if PR was not created as draft
+    if (!pr.draft) {
+      readyForReviewEvents.push({
+        time: new Date(pr.created_at),
+        event: { event: 'created_not_draft', created_at: pr.created_at }
+      });
+    }
+
+    // Sort ready events by time (ascending)
+    readyForReviewEvents.sort((a, b) => a.time - b.time);
+
+    // If we couldn't find any ready events, return null
+    if (readyForReviewEvents.length === 0) {
+      logger.warn(`No ready_for_review events found for ${pr.html_url}`);
+      return null;
+    }
+
+    // For time to merge, we don't need review events, just return the latest ready event
+    if (reviewEvents.length === 0) {
+      const relevantReadyEvent = readyForReviewEvents[readyForReviewEvents.length - 1];
+      return {
+        relevantReadyEvent,
+        firstReviewTime: null
+      };
+    }
+
+    // Sort review events by submitted_at (ascending)
+    const sortedReviewEvents = [...reviewEvents].sort((a, b) =>
+      new Date(a.submitted_at) - new Date(b.submitted_at)
+    );
+
+    const firstReview = sortedReviewEvents[0];
+    const firstReviewTime = new Date(firstReview.submitted_at);
+
+    // Find the most recent ready event that occurred before the first review
+    const relevantReadyEvent = readyForReviewEvents
+      .filter(readyEvent => readyEvent.time < firstReviewTime)
+      .pop();
+
+    // If no ready event occurred before the first review, return null
+    if (!relevantReadyEvent) {
+      logger.warn(`No ready_for_review event found before first review for ${pr.html_url}`);
+      return null;
+    }
+
+    return {
+      relevantReadyEvent,
+      firstReviewTime
+    };
   }
 
   /**
@@ -360,54 +386,24 @@ export class GitHubClient {
    * Calculate time to merge metrics
    * @param {Object} pr - Pull request object
    * @param {Array} timelineEvents - Timeline events
+   * @param {Array} reviewEvents - PR review events
    * @returns {Object|null} Time to merge metrics or null if not applicable
    */
-  calculateTimeToMerge(pr, timelineEvents) {
+  calculateTimeToMerge(pr, timelineEvents, reviewEvents) {
     try {
       // Only process merged PRs
       if (!pr.merged_at) {
         return null;
       }
 
-      // Find all ready_for_review events
-      const readyForReviewEvents = timelineEvents.filter(event =>
-        event.event === 'ready_for_review'
-      ).map(event => ({
-        time: new Date(event.created_at),
-        event
-      }));
-
-      // Add PR creation time as a ready event if PR was not created as draft
-      if (!pr.draft) {
-        readyForReviewEvents.push({
-          time: new Date(pr.created_at),
-          event: { event: 'created_not_draft', created_at: pr.created_at }
-        });
-      }
-
-      // Sort ready events by time (ascending)
-      readyForReviewEvents.sort((a, b) => a.time - b.time);
-
-      // If we couldn't find any ready events, return null
-      if (readyForReviewEvents.length === 0) {
-        logger.warn(`No ready_for_review events found for ${pr.html_url}`);
+      // Find the ready time using the same algorithm as we use for Time to First Review
+      const result = this.getReadyAndFirstReview(pr, timelineEvents, reviewEvents);
+      if (!result) {
         return null;
       }
-
-      const mergeTime = new Date(pr.merged_at);
-
-      // Find the most recent ready event that occurred before the merge
-      const relevantReadyEvent = readyForReviewEvents
-        .filter(readyEvent => readyEvent.time < mergeTime)
-        .pop();
-
-      // If no ready event occurred before the merge, return null
-      if (!relevantReadyEvent) {
-        logger.warn(`No ready_for_review event found before merge for ${pr.html_url}`);
-        return null;
-      }
-
+      const relevantReadyEvent = result.relevantReadyEvent;
       const readyTime = relevantReadyEvent.time;
+      const mergeTime = new Date(pr.merged_at);
 
       // Calculate merge time excluding weekends
       const mergeTimeSeconds = this.calculatePickupTimeExcludingWeekends(readyTime, mergeTime);

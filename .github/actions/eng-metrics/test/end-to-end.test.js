@@ -1,5 +1,4 @@
 /**
- * End-to-end test for Time to Merge functionality
  * Tests the complete workflow from configuration to metric collection
  */
 

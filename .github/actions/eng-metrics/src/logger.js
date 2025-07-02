@@ -82,10 +82,10 @@ export const warn = (message, data = {}) => {
 /**
  * Logs an error message
  * @param {string} message - Log message
- * @param {Error} error - Error object
+ * @param {Error} [error] - Optional error object
  * @param {Object} [data] - Optional data to include in the log
  */
-export const error = (message, error, data = {}) => {
+export const error = (message, error = new Error(message), data = {}) => {
   log(LOG_LEVELS.ERROR, message, data, error);
 };
 

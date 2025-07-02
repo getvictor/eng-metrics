@@ -62,7 +62,7 @@ describe('GitHubClient - General Functionality', () => {
       };
 
       mockOctokit.rest.pulls.list.mockResolvedValue(mockResponse);
-      
+
       const result = await githubClient.fetchPullRequests('owner', 'repo', 'all', new Date('2023-01-01'));
       expect(result).toHaveLength(1);
       expect(result[0].number).toBe(1);
@@ -71,7 +71,7 @@ describe('GitHubClient - General Functionality', () => {
     test('should handle API errors gracefully', async () => {
       const mockError = new Error('API Error');
       mockOctokit.rest.pulls.list.mockRejectedValue(mockError);
-      
+
       await expect(githubClient.fetchPullRequests('owner', 'repo', 'all', new Date('2023-01-01')))
         .rejects.toThrow('API Error');
     });
@@ -89,7 +89,7 @@ describe('GitHubClient - General Functionality', () => {
       };
 
       mockOctokit.rest.issues.listEventsForTimeline.mockResolvedValue(mockResponse);
-      
+
       const result = await githubClient.fetchPRTimelineEvents('owner', 'repo', 123);
       expect(result).toHaveLength(1);
       expect(result[0].event).toBe('ready_for_review');
@@ -98,7 +98,7 @@ describe('GitHubClient - General Functionality', () => {
     test('should handle API errors gracefully', async () => {
       const mockError = new Error('Timeline API Error');
       mockOctokit.rest.issues.listEventsForTimeline.mockRejectedValue(mockError);
-      
+
       await expect(githubClient.fetchPRTimelineEvents('owner', 'repo', 123))
         .rejects.toThrow('Timeline API Error');
     });
@@ -118,7 +118,7 @@ describe('GitHubClient - General Functionality', () => {
       };
 
       mockOctokit.rest.pulls.listReviews.mockResolvedValue(mockResponse);
-      
+
       const result = await githubClient.fetchPRReviewEvents('owner', 'repo', 123);
       expect(result).toHaveLength(1);
       expect(result[0].state).toBe('APPROVED');
@@ -127,39 +127,10 @@ describe('GitHubClient - General Functionality', () => {
     test('should handle API errors gracefully', async () => {
       const mockError = new Error('Reviews API Error');
       mockOctokit.rest.pulls.listReviews.mockRejectedValue(mockError);
-      
+
       await expect(githubClient.fetchPRReviewEvents('owner', 'repo', 123))
         .rejects.toThrow('Reviews API Error');
     });
   });
 
-  describe('calculatePickupTimeExcludingWeekends', () => {
-    const testCases = [
-      {
-        name: 'should calculate same-day time correctly',
-        startTime: new Date('2023-06-15T10:00:00Z'), // Thursday 10 AM
-        endTime: new Date('2023-06-15T14:00:00Z'),   // Thursday 2 PM
-        expected: 14400 // 4 hours in seconds
-      },
-      {
-        name: 'should handle same time',
-        startTime: new Date('2023-06-15T10:00:00Z'),
-        endTime: new Date('2023-06-15T10:00:00Z'),
-        expected: 0
-      },
-      {
-        name: 'should handle end time before start time',
-        startTime: new Date('2023-06-15T14:00:00Z'),
-        endTime: new Date('2023-06-15T10:00:00Z'),
-        expected: 0
-      }
-    ];
-
-    testCases.forEach(({ name, startTime, endTime, expected }) => {
-      test(name, () => {
-        const result = githubClient.calculatePickupTimeExcludingWeekends(startTime, endTime);
-        expect(result).toBe(expected);
-      });
-    });
-  });
 });

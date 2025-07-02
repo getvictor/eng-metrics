@@ -114,7 +114,7 @@ describe('MetricsCollector', () => {
 
       expect(result).toEqual([firstReviewMetric, mergeMetric]);
       expect(mockGitHubClient.calculatePickupTime).toHaveBeenCalledWith(mockPR, mockTimelineEvents, mockReviewEvents);
-      expect(mockGitHubClient.calculateTimeToMerge).toHaveBeenCalledWith(mockPR, mockTimelineEvents);
+      expect(mockGitHubClient.calculateTimeToMerge).toHaveBeenCalledWith(mockPR, mockTimelineEvents, mockReviewEvents);
     });
 
     test('should only collect first review metric when merge is disabled', async () => {
