@@ -2,7 +2,7 @@ name: Collect engineering metrics
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # Run at 4am CDT (9am UTC)
+    - cron: '0 10 * * *'  # Run at 5am CDT (10am UTC)
   workflow_dispatch:      # Allow manual triggering
 
 jobs:
