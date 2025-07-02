@@ -119,10 +119,16 @@ export class MetricsCollector {
           );
 
           // Fetch PR review events (needed for Time to First Review)
-          const reviewEvents = await this.githubClient.fetchPRReviewEvents(
+          const rawReviewEvents = await this.githubClient.fetchPRReviewEvents(
             owner,
             repo,
             pr.number
+          );
+
+          // Filter bot reviews if configured
+          const reviewEvents = this.githubClient.filterBotReviews(
+            rawReviewEvents,
+            this.config.excludeBotReviews
           );
 
           // Collect enabled metrics for this PR

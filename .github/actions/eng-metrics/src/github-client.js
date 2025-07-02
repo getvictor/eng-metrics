@@ -7,6 +7,58 @@ import { Octokit } from 'octokit';
 import logger from './logger.js';
 
 /**
+ * Identifies if a GitHub user is likely a bot
+ * @param {Object} user - GitHub user object
+ * @returns {Object} Bot analysis result
+ */
+function identifyBotUser(user) {
+  const botIndicators = {
+    isBot: false,
+    confidence: 'low',
+    reasons: []
+  };
+
+  // Check GitHub's bot flag (most reliable)
+  if (user.type === 'Bot') {
+    botIndicators.isBot = true;
+    botIndicators.confidence = 'high';
+    botIndicators.reasons.push('GitHub API type is "Bot"');
+    return botIndicators;
+  }
+
+  // Check username patterns
+  const username = user.login.toLowerCase();
+  const botPatterns = [
+    /\[bot]/,        // contains '[bot]'
+    /^dependabot/,    // dependabot
+    /^renovate/,      // renovate bot
+    /^github-actions/, // GitHub Actions
+    /^codecov/,       // codecov bot
+    /^coderabbitai/,  // coderabbit AI bot
+    /^sonarcloud/,    // sonarcloud bot
+    /^snyk/,          // snyk bot
+    /^greenkeeper/,   // greenkeeper bot
+    /^semantic-release/, // semantic-release bot
+    /^stale/,         // stale bot
+    /^imgbot/,        // imgbot
+    /^allcontributors/, // all-contributors bot
+    /^whitesource/,   // whitesource bot
+    /^deepsource/,    // deepsource bot
+  ];
+
+  for (const pattern of botPatterns) {
+    if (pattern.test(username)) {
+      botIndicators.isBot = true;
+      botIndicators.confidence = 'high';
+      botIndicators.reasons.push(`Username matches bot pattern: ${pattern}`);
+      break;
+    }
+  }
+
+  return botIndicators;
+}
+
+/**
  * GitHub client class
  */
 export class GitHubClient {
@@ -143,6 +195,37 @@ export class GitHubClient {
 
       throw err;
     }
+  }
+
+  /**
+   * Filters out bot reviews from review events
+   * @param {Array} reviewEvents - Array of review events
+   * @param {boolean} excludeBots - Whether to exclude bot reviews (default: false)
+   * @returns {Array} Filtered review events
+   */
+  filterBotReviews(reviewEvents, excludeBots = false) {
+    if (!excludeBots) {
+      return reviewEvents;
+    }
+
+    const filteredReviews = reviewEvents.filter(review => {
+      const botAnalysis = identifyBotUser(review.user);
+      if (botAnalysis.isBot) {
+        logger.debug(`Filtering out bot review from ${review.user.login}`, {
+          confidence: botAnalysis.confidence,
+          reasons: botAnalysis.reasons
+        });
+        return false;
+      }
+      return true;
+    });
+
+    const botCount = reviewEvents.length - filteredReviews.length;
+    if (botCount > 0) {
+      logger.info(`Filtered out ${botCount} bot reviews from ${reviewEvents.length} total reviews`);
+    }
+
+    return filteredReviews;
   }
 
   /**

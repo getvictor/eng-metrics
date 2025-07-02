@@ -104,6 +104,7 @@ describe('Config', () => {
         printOnly: false,
         userGroupEnabled: true,
         userGroupFilepath: '../../../handbook/company/product-groups.md',
+        excludeBotReviews: true,
         metrics: {
           timeToFirstReview: {
             enabled: true,
@@ -141,6 +142,7 @@ describe('Config', () => {
         printOnly: true,
         userGroupEnabled: true,
         userGroupFilepath: '../../../handbook/company/product-groups.md',
+        excludeBotReviews: true,
         metrics: {
           timeToFirstReview: {
             enabled: true,

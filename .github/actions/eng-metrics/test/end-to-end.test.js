@@ -20,6 +20,7 @@ jest.mock('../src/github-client.js', () => {
     fetchPullRequests: jest.fn(),
     fetchPRTimelineEvents: jest.fn(),
     fetchPRReviewEvents: jest.fn(),
+    filterBotReviews: jest.fn((reviews, excludeBots) => excludeBots ? [] : reviews),
     calculatePickupTime: jest.fn(),
     calculateTimeToMerge: jest.fn()
   }));
@@ -108,7 +109,8 @@ describe('End-to-End Time to Merge Workflow', () => {
         targetBranch: 'main',
         readyTime: new Date('2023-06-15T10:00:00Z'),
         mergeTime: new Date('2023-06-15T14:30:00Z')
-      })
+      }),
+      filterBotReviews: jest.fn((reviews, excludeBots) => excludeBots ? [] : reviews)
     };
 
     // Collect metrics for a single repository

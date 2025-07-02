@@ -34,6 +34,9 @@ const DEFAULT_CONFIG = {
   userGroupEnabled: true,
   userGroupFilepath: '../../../handbook/company/product-groups.md',
 
+  // Bot filtering configuration
+  excludeBotReviews: true,
+
   // Multi-table configuration
   metrics: {
     timeToFirstReview: {
