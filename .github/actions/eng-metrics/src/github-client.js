@@ -214,7 +214,7 @@ export class GitHubClient {
   calculatePickupTime(pr, timelineEvents, reviewEvents) {
     try {
       const result = this.getReadyAndFirstReview(pr, timelineEvents, reviewEvents);
-      if (!result) {
+      if (!result || !result.firstReviewTime) {
         return null;
       }
       const { relevantReadyEvent, firstReviewTime } = result;
@@ -275,7 +275,7 @@ export class GitHubClient {
    */
   getReadyAndFirstReview(pr, timelineEvents, reviewEvents) {
     const mergeTime = pr.merged_at ? new Date(pr.merged_at) : null;
-    
+
     // Find all ready_for_review events that occurred before merge time (if merged)
     const readyForReviewEvents = timelineEvents.filter(event =>
       event.event === 'ready_for_review'
@@ -303,7 +303,7 @@ export class GitHubClient {
       return null;
     }
 
-    // For time to merge, we don't need review events, just return the latest ready event
+    // If there is no review events, the PR may have been merged without a review.
     if (reviewEvents.length === 0) {
       const relevantReadyEvent = readyForReviewEvents[readyForReviewEvents.length - 1];
       return {
